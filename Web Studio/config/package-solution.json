@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "web-studio-client-side-solution",
+    "id": "5139737a-210f-47a4-b1e8-bcb91fa0d02d",
+    "version": "1.0.0.9",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.21.1"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "web-studio description"
+      },
+      "longDescription": {
+        "default": "web-studio description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "web-studio Feature",
+        "description": "The feature that activates elements of the web-studio solution.",
+        "id": "0e00d426-edcf-4e4b-bc5f-054cda596226",
+        "version": "1.0.0.9"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/web-studio.sppkg"
+  }
+}

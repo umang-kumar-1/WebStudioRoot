@@ -1,0 +1,1082 @@
+
+
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { ModalType, ViewMode, ContainerType } from './types';
+import type { Page, SiteConfig, ThemeConfig, LanguageCode, MultilingualText, NavItem, NewsItem, EventItem, DocumentItem, ContainerItem, ContactItem, SliderItem, Container, ImageItem, ImageFolder, TranslationItem, PermissionGroup, PermissionUser, ContactQuery } from './types';
+
+
+// Static UI Translations (Initial State)
+export const INITIAL_UI_LABELS: Record<string, MultilingualText> = {
+  // App Header
+  APP_TITLE: { en: 'Web Studio', de: 'Web Studio', fr: 'Web Studio', es: 'Web Studio' },
+  APP_SUBTITLE: { en: 'Enterprise CMS', de: 'Unternehmens-CMS', fr: 'CMS d\'entreprise', es: 'CMS empresarial' },
+
+  // Sidebar Sections
+  SITE_GLOBALS: { en: 'Site Globals', de: 'Globale Einstellungen', fr: 'Paramètres globaux', es: 'Configuración global' },
+  PAGES: { en: 'Pages', de: 'Seiten', fr: 'Pages', es: 'Páginas' },
+  SECTION_PAGE_INFO: { en: 'Page Info', de: 'Seiteninfo', fr: 'Info page', es: 'Info página' },
+
+  // Page Info Labels
+  LABEL_TITLE: { en: 'Title', de: 'Titel', fr: 'Titre', es: 'Título' },
+  LABEL_STATUS: { en: 'Status', de: 'Status', fr: 'Statut', es: 'Estado' },
+  LABEL_MODIFIED: { en: 'Modified', de: 'Geändert', fr: 'Modifié', es: 'Modificado' },
+
+  // Toggle Buttons
+  PAGE_PREVIEW: { en: 'Page Preview', de: 'Seitenvorschau', fr: 'Aperçu de la page', es: 'Vista previa' },
+  EDIT_MODE: { en: 'Edit Mode', de: 'Bearbeitungsmodus', fr: 'Mode édition', es: 'Modo edición' },
+
+  // Management Items
+  NAV_MGMT: { en: 'Navigation Management', de: 'Navigationsverwaltung', fr: 'Gestion de navigation', es: 'Gestión de navegación' },
+  NEWS_MGMT: { en: 'News Management', de: 'Nachrichtenverwaltung', fr: 'Gestion des actualités', es: 'Gestión de noticias' },
+  EVENT_MGMT: { en: 'Event Management', de: 'Veranstaltungsverwaltung', fr: 'Gestion des événements', es: 'Gestión de eventos' },
+  DOC_MGMT: { en: 'Document Management', de: 'Dokumentenverwaltung', fr: 'Gestion documentaire', es: 'Gestión de documentos' },
+  FOOTER_MGMT: { en: 'Footer Management', de: 'Fußzeilenverwaltung', fr: 'Gestion de pied de page', es: 'Gestión de pie de página' },
+  SITE_MGMT: { en: 'Site Management', de: 'Seitenverwaltung', fr: 'Gestion du site', es: 'Gestión del sitio' },
+  IMG_MGMT: { en: 'Image Management', de: 'Bildverwaltung', fr: 'Gestion des images', es: 'Gestión de imágenes' },
+  CONTENT_TRANS: { en: 'Content Translator', de: 'Inhaltsübersetzer', fr: 'Traducteur de contenu', es: 'Traductor de contenu' },
+  PERM_MGMT: { en: 'Permission Management', de: 'Berechtigungsverwaltung', fr: 'Gestion des permissions', es: 'Gestión de permisos' },
+  CONTACT_Q: { en: 'Contact Form Queries', de: 'Kontaktanfragen', fr: 'Demandes de contact', es: 'Consultas de contacto' },
+  STYLING: { en: 'Styling Configuration', de: 'Design-Konfiguration', fr: 'Configuration du style', es: 'Configuración de estilo' },
+};
+
+export const DEFAULT_THEME: ThemeConfig = {
+  // Brand Colors (Corporate Blue #2f5596)
+  '--primary-color': '#2f5596',
+  '--secondary-color': '#1f3f73',
+  '--brand-light': '#e6ecf7',
+  '--brand-dark': '#1c355f',
+  '--gradient-primary': 'linear-gradient(135deg, #2f5596 0%, #1f3f73 100%)',
+
+  // Sidebar Specific
+  '--sidebar-bg': '#ffffff',
+  '--sidebar-text': '#1f2937',
+  '--sidebar-text-muted': '#6b7280',
+  '--sidebar-border-color': '#e5e7eb',
+
+  '--sidebar-icon-color': '#2f5596',
+  '--sidebar-link-color': '#2f5596',
+  '--sidebar-link-hover-color': '#1f3f73',
+  '--sidebar-active-text-color': '#2f5596',
+  '--sidebar-active-indicator-color': '#2f5596',
+  '--sidebar-button-color': '#2f5596',
+  '--sidebar-active-bg': '#eff6ff',
+  '--sidebar-hover-bg': '#f9fafb',
+
+  // Text & Links
+  '--text-primary': '#1f2937',
+  '--text-secondary': '#4b5563',
+  '--text-on-primary': '#ffffff',
+  '--link-color': '#2f5596',
+  '--link-hover-color': '#1f3f73',
+
+  // Backgrounds
+  '--bg-body': '#f8fafc',
+  '--bg-surface': '#ffffff',
+  '--bg-hover': '#eef2ff',
+
+  // Buttons
+  '--btn-primary-bg': '#2f5596',
+  '--btn-primary-text': '#ffffff',
+  '--btn-primary-hover-bg': '#1f3f73',
+  '--btn-secondary-bg': '#ffffff',
+  '--btn-secondary-text': '#1f2937',
+  '--btn-padding-y': '0.5rem',
+  '--btn-padding-x': '1.25rem',
+  '--btn-font-size': '14px',
+
+  // Status
+  '--status-success': '#16a34a',
+  '--status-warning': '#f59e0b',
+  '--status-error': '#dc2626',
+
+  // Borders
+  '--border-radius-sm': '0px',
+  '--border-radius-md': '0px',
+  '--border-radius-lg': '0px',
+  '--border-color': '#d1d5db',
+
+  // Typography
+  '--font-import-url': '',
+  '--font-family-base': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+  '--font-family-secondary': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+
+  '--heading-color': '#1f2937',
+  '--heading-h1-color': 'var(--heading-color)',
+  '--heading-h2-color': 'var(--heading-color)',
+  '--heading-h3-color': 'var(--heading-color)',
+  '--heading-h4-color': 'var(--heading-color)',
+  '--heading-h5-color': 'var(--heading-color)',
+  '--heading-h6-color': 'var(--heading-color)',
+
+  '--font-size-base': '14px',
+  '--font-size-h1': '42px',
+  '--font-size-h2': '32px',
+  '--font-size-h3': '24px',
+  '--font-size-h4': '20px',
+  '--font-size-h5': '16px',
+  '--font-size-h6': '14px',
+  '--font-weight-bold': '600',
+};
+
+export const GLOBAL_DEFAULT_IMAGE = 'https://hochhuth-consulting.de//images/logo.png';
+
+// Helper: Generate Default Containers - PAGE-WISE ISOLATION
+const createDefaultContainers = (pageId: string): Container[] => {
+  // --- PAGE 1: HOME ---
+  if (pageId === '1') {
+    return [
+      {
+        id: `c_home_slider`,
+        pageId: pageId,
+        type: ContainerType.SLIDER,
+        order: 0,
+        isVisible: true,
+        settings: { templateId: 'img_text', speed: 5, autoplay: true },
+        content: { title: { en: 'Welcome to Web Studio', de: 'Willkommen', fr: 'Bienvenue', es: 'Bienvenido' } }
+      },
+      {
+        id: `c_home_news_grid`,
+        pageId: pageId,
+        type: ContainerType.CARD_GRID,
+        order: 1,
+        isVisible: true,
+        settings: {
+          source: 'News',
+          columns: 3,
+          ordering: '123',
+          layout: 'grid',
+          imgPos: 'top',
+          border: 'sharp',
+          title: 'Latest News',
+          taggedItems: ['1', 'mock_1', 'mock_2']
+        },
+        content: { title: { en: 'Latest News', de: 'Aktuelle Nachrichten', fr: 'Dernières nouvelles', es: 'Últimas noticias' } }
+      },
+      {
+        id: `c_home_events`,
+        pageId: pageId,
+        type: ContainerType.CARD_GRID,
+        order: 2,
+        isVisible: true,
+        settings: {
+          source: 'Event',
+          columns: 3,
+          ordering: 'none',
+          layout: 'slider',
+          imgPos: 'left',
+          border: 'rounded',
+          title: 'Upcoming Events',
+          taggedItems: ['e1', 'mock_e1', 'mock_e2']
+        },
+        content: { title: { en: 'Upcoming Events', de: 'Kommende Veranstaltungen', fr: 'Événements à venir', es: 'Próximos eventos' } }
+      }
+    ];
+  }
+
+  // --- PAGE 2: WHAT WE OFFER ---
+  if (pageId === '2') {
+    return [
+      {
+        id: `c_offer_hero`,
+        pageId: pageId,
+        type: ContainerType.HERO,
+        order: 0,
+        isVisible: true,
+        settings: {
+          templateId: 'hero_img',
+          templateVariant: 1,
+          bgType: 'image',
+          bgImage: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=2000&q=80',
+          bgColor: '#1c355f',
+          titleColor: 'white',
+          align: 'center',
+          heading: 'Our Services',
+          containerTitle: 'What We Offer'
+        },
+        content: {
+          title: { en: 'World Class Solutions', de: 'Weltklasse-Lösungen', fr: 'Solutions de classe mondiale', es: 'Soluciones de clase mundial' },
+          subtitle: { en: 'Tailored for your business needs', de: 'Maßgeschneidert für Ihre Bedürfnisse', fr: 'Adapté à vos besoins', es: 'Adaptado a sus necesidades' },
+          description: { en: 'We provide a wide range of digital services including consulting, development, and support.', de: 'Wir bieten eine breite Palette digitaler Dienste an.', fr: 'Nous proposons une large gamme de services numériques.', es: 'Ofrecemos una amplia gama de servicios digitales.' }
+        }
+      },
+      {
+        id: `c_offer_docs`,
+        pageId: pageId,
+        type: ContainerType.CARD_GRID,
+        order: 1,
+        isVisible: true,
+        settings: {
+          source: 'Document',
+          columns: 3,
+          ordering: 'ABC',
+          layout: 'grid',
+          imgPos: 'none',
+          border: 'sharp',
+          title: 'Service Catalog',
+          taggedItems: ['d1', 'm1', 'm8']
+        },
+        content: { title: { en: 'Service Catalog', de: 'Servicekatalog', fr: 'Catalogue de services', es: 'Catálogo de servicios' } }
+      },
+      {
+        id: `c_offer_slider`,
+        pageId: pageId,
+        type: ContainerType.SLIDER,
+        order: 2,
+        isVisible: true,
+        settings: {
+          templateId: 'img_gallery',
+          templateVariant: 1,
+          speed: 4,
+          autoplay: true,
+          slides: [
+            { id: 's_prod1', title: 'Product A', desc: 'High performance module', image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80' },
+            { id: 's_prod2', title: 'Product B', desc: 'Enterprise integration', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80' }
+          ]
+        },
+        content: { title: { en: 'Product Gallery', de: 'Produktgalerie', fr: 'Galerie de produits', es: 'Galería de productos' } }
+      }
+    ];
+  }
+
+  // --- PAGE 3: HOW WE WORK ---
+  if (pageId === '3') {
+    return [
+      {
+        id: `c_work_hero`,
+        pageId: pageId,
+        type: ContainerType.HERO,
+        order: 0,
+        isVisible: true,
+        settings: {
+          templateId: 'visual_text',
+          templateVariant: 2,
+          bgType: 'layout',
+          layoutVariant: 'img_right',
+          bgImage: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=2000&q=80',
+          bgColor: '#f8fafc',
+          titleColor: 'black',
+          align: 'left',
+          heading: 'Our Process',
+          containerTitle: 'Methodology'
+        },
+        content: {
+          title: { en: 'Agile & Efficient', de: 'Agil & Effizient', fr: 'Agile et Efficace', es: 'Ágil y Eficiente' },
+          description: { en: 'We follow a strict agile methodology to ensure rapid delivery and continuous improvement.', de: 'Wir folgen einer strengen agilen Methodik.', fr: 'Nous suivons une méthodologie agile stricte.', es: 'Seguimos una metodología ágil estricta.' }
+        }
+      },
+      {
+        id: `c_work_table`,
+        pageId: pageId,
+        type: ContainerType.TABLE,
+        order: 1,
+        isVisible: true,
+        settings: {
+          title: 'Project Phases',
+          columns: [
+            { id: 'c1', header: 'Phase' },
+            { id: 'c2', header: 'Duration' },
+            { id: 'c3', header: 'Deliverables' }
+          ],
+          enableGlobalSearch: false,
+          enableSorting: true
+        },
+        content: {
+          title: { en: 'Project Phases', de: 'Projektphasen', fr: 'Phases du projet', es: 'Fases del proyecto' },
+          rows: [
+            { id: 'r1', c1: 'Discovery', c2: '2 Weeks', c3: 'Requirements Doc' },
+            { id: 'r2', c1: 'Design', c2: '4 Weeks', c3: 'Figma Prototypes' },
+            { id: 'r3', c1: 'Development', c2: '8 Weeks', c3: 'Production Code' }
+          ]
+        }
+      },
+      {
+        id: `c_work_map`,
+        pageId: pageId,
+        type: ContainerType.MAP,
+        order: 2,
+        isVisible: true,
+        settings: {
+          title: 'Global Presence',
+          mapType: 'World',
+          locationSearch: 'Berlin, Germany'
+        },
+        content: { title: { en: 'Our Locations', de: 'Unsere Standorte', fr: 'Nos emplacements', es: 'Nuestras ubicaciones' } }
+      }
+    ];
+  }
+
+  // --- PAGE 4: WHO WE ARE (Matches previous specific requirement) ---
+  if (pageId === '4') {
+    return [
+      {
+        id: `c_who_hero`,
+        pageId: pageId,
+        type: ContainerType.HERO,
+        order: 0,
+        isVisible: true,
+        settings: {
+          templateId: 'visual_text',
+          templateVariant: 1,
+          minHeight: 'full',
+          bgType: 'image',
+          bgImage: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80',
+          bgColor: '#ffffff',
+          titleColor: 'white',
+          align: 'center',
+          heading: 'WHO WE ARE',
+          containerTitle: 'About Us'
+        },
+        content: {
+          title: { en: 'WHO WE ARE', de: 'WER WIR SIND', fr: 'QUI NOUS SOMMES', es: 'QUIÉNES SOMOS' },
+          subtitle: { en: 'Driving Innovation & Excellence', de: 'Innovation und Exzellenz vorantreiben', fr: 'Stimuler l\'innovation et l\'excellence', es: 'Impulsando la innovación y la excelencia' },
+          description: { en: 'We are a dedicated team of professionals committed to delivering high-quality solutions that empower businesses to thrive in the digital age.', de: 'Wir sind ein engagiertes Team von Fachleuten.', fr: 'Nous sommes une équipe dévouée.', es: 'Somos un equipo dedicado.' }
+        }
+      },
+      {
+        id: `c_who_events`,
+        pageId: pageId,
+        type: ContainerType.CARD_GRID,
+        order: 1,
+        isVisible: true,
+        settings: {
+          source: 'Event',
+          columns: 3,
+          ordering: 'none',
+          layout: 'grid',
+          imgPos: 'top',
+          border: 'sharp',
+          title: 'Upcoming Events',
+          taggedItems: ['e1', 'mock_e1', 'mock_e2']
+        },
+        content: {
+          title: { en: 'Upcoming Events', de: 'Kommende Veranstaltungen', fr: 'Événements à venir', es: 'Próximos Eventos' }
+        }
+      },
+      {
+        id: `c_who_gallery`,
+        pageId: pageId,
+        type: ContainerType.SLIDER,
+        order: 2,
+        isVisible: true,
+        settings: {
+          templateId: 'img_gallery',
+          templateVariant: 1,
+          speed: 5,
+          autoplay: true,
+          arrows: true,
+          dots: true,
+          slides: [
+            {
+              id: 's1',
+              title: 'Our Office',
+              sub: 'Berlin Headquarters',
+              desc: 'A glimpse into our daily work environment.',
+              image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80'
+            },
+            {
+              id: 's2',
+              title: 'Team Spirit',
+              sub: 'Collaborative Culture',
+              desc: 'We believe in the power of teamwork.',
+              image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80'
+            },
+            {
+              id: 's3',
+              title: 'Global Impact',
+              sub: 'Connecting the World',
+              desc: 'Our solutions reach clients globally.',
+              image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80'
+            }
+          ]
+        },
+        content: {
+          title: { en: 'Our Gallery', de: 'Unsere Galerie', fr: 'Notre Galerie', es: 'Nuestra Galería' }
+        }
+      }
+    ];
+  }
+
+  // --- PAGE 5: CAREERS ---
+  if (pageId === '5') {
+    return [
+      {
+        id: `c_career_hero`,
+        pageId: pageId,
+        type: ContainerType.HERO,
+        order: 0,
+        isVisible: true,
+        settings: {
+          templateId: 'hero_img',
+          bgType: 'image',
+          bgImage: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=2000&q=80',
+          titleColor: 'white',
+          align: 'center',
+          heading: 'Join Our Team',
+          containerTitle: 'Careers'
+        },
+        content: {
+          title: { en: 'Build the Future With Us', de: 'Bauen Sie die Zukunft mit uns', fr: 'Construisez l\'avenir avec nous', es: 'Construye el futuro con nosotros' },
+          description: { en: 'Explore exciting opportunities to grow your career.', de: 'Entdecken Sie spannende Möglichkeiten.', fr: 'Explorez des opportunités passionnantes.', es: 'Explora oportunidades emocionantes.' }
+        }
+      },
+      {
+        id: `c_career_jobs`,
+        pageId: pageId,
+        type: ContainerType.CARD_GRID,
+        order: 1,
+        isVisible: true,
+        settings: {
+          source: 'News', // Mocking Jobs via News items for now
+          columns: 2,
+          ordering: 'none',
+          layout: 'grid',
+          imgPos: 'left',
+          border: 'sharp',
+          title: 'Open Positions',
+          taggedItems: ['mock_6', 'mock_10']
+        },
+        content: { title: { en: 'Open Positions', de: 'Offene Stellen', fr: 'Postes ouverts', es: 'Posiciones abiertas' } }
+      },
+      {
+        id: `c_career_contact`,
+        pageId: pageId,
+        type: ContainerType.CONTACT_FORM,
+        order: 2,
+        isVisible: true,
+        settings: {
+          heading: 'Apply Now',
+          subheading: 'Send us your resume',
+          bgType: 'color',
+          bgColor: '#f3f4f6',
+          buttonText: 'Submit Application',
+          fields: [
+            { id: 'f1', label: 'Full Name', type: 'text', required: true },
+            { id: 'f2', label: 'Email', type: 'email', required: true },
+            { id: 'f3', label: 'LinkedIn Profile', type: 'text', required: false },
+            { id: 'f4', label: 'Cover Letter', type: 'textarea', required: true }
+          ]
+        },
+        content: { title: { en: 'Apply Now', de: 'Jetzt bewerben', fr: 'Postuler maintenant', es: 'Aplica ya' } }
+      }
+    ];
+  }
+
+  // --- PAGE 6: CONTACT ---
+  if (pageId === '6') {
+    return [
+      {
+        id: `c_contact_hero`,
+        pageId: pageId,
+        type: ContainerType.HERO,
+        order: 0,
+        isVisible: true,
+        settings: {
+          templateId: 'page_content',
+          bgType: 'color',
+          bgColor: '#1f2937',
+          titleColor: 'white',
+          align: 'center',
+          heading: 'Contact Us',
+          containerTitle: 'Get in Touch'
+        },
+        content: {
+          title: { en: 'We are here to help', de: 'Wir sind hier um zu helfen', fr: 'Nous sommes là pour aider', es: 'Estamos aquí para ayudar' },
+          description: { en: 'Reach out to us for any inquiries or support.', de: 'Kontaktieren Sie uns für Anfragen.', fr: 'Contactez-nous pour toute demande.', es: 'Contáctenos para cualquier consulta.' }
+        }
+      },
+      {
+        id: `c_contact_form`,
+        pageId: pageId,
+        type: ContainerType.CONTACT_FORM,
+        order: 1,
+        isVisible: true,
+        settings: {
+          heading: 'Send a Message',
+          bgType: 'none',
+          fields: [
+            { id: 'c1', label: 'Name', type: 'text', required: true },
+            { id: 'c2', label: 'Email', type: 'email', required: true },
+            { id: 'c3', label: 'Subject', type: 'text', required: false },
+            { id: 'c4', label: 'Message', type: 'textarea', required: true }
+          ],
+          buttonText: 'Send Message'
+        },
+        content: { title: { en: 'Contact Form', de: 'Kontaktformular', fr: 'Formulaire de contact', es: 'Formulario de contacto' } }
+      },
+      {
+        id: `c_contact_map`,
+        pageId: pageId,
+        type: ContainerType.MAP,
+        order: 2,
+        isVisible: true,
+        settings: {
+          title: 'Visit Us',
+          mapType: 'Country',
+          selectedRegion: 'Germany',
+          locationSearch: 'Munich'
+        },
+        content: { title: { en: 'Headquarters', de: 'Hauptquartier', fr: 'Siège social', es: 'Sede central' } }
+      }
+    ];
+  }
+
+  return [];
+};
+
+const MOCK_NAV: NavItem[] = [
+  { id: '1', parentId: 'root', title: 'HOME', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
+  { id: '2', parentId: 'root', title: 'WHAT WE OFFER', type: 'Page', pageId: '2', isVisible: true, openInNewTab: false, order: 1 },
+  { id: '3', parentId: 'root', title: 'HOW WE WORK', type: 'Page', pageId: '3', isVisible: true, openInNewTab: false, order: 2 },
+  { id: '3_1', parentId: '3', title: 'Our Process', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
+  { id: '4', parentId: 'root', title: 'WHO WE ARE', type: 'Page', pageId: '4', isVisible: true, openInNewTab: false, order: 3 },
+  { id: '5', parentId: 'root', title: 'CAREERS', type: 'Page', pageId: '5', isVisible: true, openInNewTab: false, order: 4 },
+  { id: '6', parentId: 'root', title: 'CONTACT', type: 'Page', pageId: '6', isVisible: true, openInNewTab: false, order: 5 },
+];
+
+const MOCK_PAGES: Page[] = [
+  {
+    id: '1',
+    title: { en: 'Home', de: 'Startseite', fr: 'Accueil', es: 'Inicio' },
+    slug: '/',
+    status: 'Published',
+    createdBy: 'Sameer Gupta',
+    modifiedBy: 'Shivdutt Mishra',
+    modifiedDate: '2026-02-03T12:45:00Z',
+    description: 'Welcome to our corporate intranet home page. This is the central hub for all company news.',
+    isHomePage: true,
+    seo: { title: 'Home - Web Studio', description: 'Corporate Intranet Home', keywords: 'home, intranet, corporate, news' },
+    containers: createDefaultContainers('1')
+  },
+  {
+    id: '2',
+    title: { en: 'What We Offer', de: 'Was wir bieten', fr: 'Ce que nous offrons', es: 'Lo que ofrecemos' },
+    slug: '/what-we-offer',
+    status: 'Published',
+    createdBy: 'System',
+    modifiedBy: 'Admin',
+    modifiedDate: new Date().toISOString(),
+    description: 'Overview of our services and products.',
+    seo: { title: 'Services - Web Studio', description: 'Our offerings', keywords: 'services, products' },
+    containers: createDefaultContainers('2')
+  },
+  {
+    id: '3',
+    title: { en: 'How We Work', de: 'Wie wir arbeiten', fr: 'Notre méthode', es: 'Cómo trabajamos' },
+    slug: '/how-we-work',
+    status: 'Published',
+    createdBy: 'System',
+    modifiedBy: 'Admin',
+    modifiedDate: new Date().toISOString(),
+    containers: createDefaultContainers('3')
+  },
+  { id: '4', title: { en: 'Who We Are', de: 'Wer wir sind', fr: 'Qui nous sommes', es: 'Quiénes somos' }, slug: '/who-we-are', status: 'Published', createdBy: 'System', modifiedBy: 'Admin', modifiedDate: new Date().toISOString(), containers: createDefaultContainers('4') },
+  { id: '5', title: { en: 'Careers', de: 'Karriere', fr: 'Carrières', es: 'Carreras' }, slug: '/careers', status: 'Published', createdBy: 'System', modifiedBy: 'Admin', modifiedDate: new Date().toISOString(), containers: createDefaultContainers('5') },
+  { id: '6', title: { en: 'Contact', de: 'Kontakt', fr: 'Contact', es: 'Contacto' }, slug: '/contact', status: 'Published', createdBy: 'System', modifiedBy: 'Admin', modifiedDate: new Date().toISOString(), containers: createDefaultContainers('6') }
+];
+
+// --- CENTRALIZED MOCK DATA ---
+const MOCK_NEWS: NewsItem[] = [
+  { id: '1', title: 'New Office Opening in Berlin', status: 'Published', publishDate: '2025-01-10', description: 'We are thrilled to announce the opening of our new regional headquarters.', readMore: { enabled: true, text: 'Read more', url: '#' }, translations: { de: { title: 'Neues Büro', description: 'Wir freuen uns...' }, fr: { title: 'Nouveau bureau', description: 'Nous sommes ravis...' } } },
+  { id: 'mock_1', title: 'Global Expansion Strategy 2025', status: 'Published', publishDate: '2025-03-10', description: 'Our comprehensive plan to enter new markets in Asia and South America is now officially underway.', imageUrl: 'https://images.unsplash.com/photo-1526304640152-d4619684e484?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_2', title: 'Employee Wellness Week Highlights', status: 'Published', publishDate: '2025-02-28', description: 'A look back at the activities and workshops from our successful wellness week.', imageUrl: 'https://images.unsplash.com/photo-1577962917302-cd874c4e3169?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_3', title: 'Q1 Financial Results Announcement', status: 'Draft', publishDate: '2025-04-15', description: 'Upcoming announcement regarding the first quarter financial performance.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=300&q=80', readMore: { enabled: false } },
+  { id: 'mock_4', title: 'New IT Security Protocols', status: 'Published', publishDate: '2025-01-15', description: 'Important updates to our cybersecurity measures and employee guidelines.', imageUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_5', title: 'Sustainability Report 2024', status: 'Published', publishDate: '2024-12-20', description: 'Download the full report on our environmental impact and future goals.', imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_6', title: 'Welcome to Our New CTO', status: 'Published', publishDate: '2025-03-01', description: 'We are pleased to welcome Sarah Jenkins to the executive leadership team.', imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_7', title: 'Office Renovation Updates', status: 'Draft', publishDate: '2025-05-01', description: 'Phase 2 of the headquarters renovation begins next month.', imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=300&q=80', readMore: { enabled: false } },
+  { id: 'mock_8', title: 'Annual Charity Gala', status: 'Published', publishDate: '2024-11-10', description: 'Join us for an evening of giving back to our community partners.', imageUrl: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_9', title: 'Product Launch: X-Series', status: 'Published', publishDate: '2025-02-15', description: 'Introducing our latest innovation in enterprise software solutions.', imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_10', title: 'Remote Work Policy Update', status: 'Published', publishDate: '2025-01-05', description: 'Clarifications on the hybrid work model and equipment allowances.', imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f7853670c6e?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } }
+];
+
+const MOCK_EVENTS: EventItem[] = [
+  { id: 'e1', title: 'Annual Tech Conference 2025', status: 'Published', startDate: '2025-06-15', endDate: '2025-06-17', description: 'Join us for the biggest tech conference of the year.', readMore: { enabled: true, text: 'Register Now', url: '#' }, translations: {} },
+  { id: 'mock_e1', title: 'Q3 Town Hall Meeting', status: 'Published', startDate: '2025-08-15', endDate: '2025-08-15', description: 'Join leadership for updates on company performance and future goals.', imageUrl: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e2', title: 'Developer Summit 2025', status: 'Published', startDate: '2025-09-10', endDate: '2025-09-12', description: 'A 3-day deep dive into the latest technologies and frameworks.', imageUrl: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e3', title: 'Annual Charity Run', status: 'Draft', startDate: '2025-10-05', endDate: '2025-10-05', description: 'Raise money for local charities by participating in our 5k run.', imageUrl: 'https://images.unsplash.com/photo-1552674605-46f5383a6d71?auto=format&fit=crop&w=300&q=80', readMore: { enabled: false } },
+  { id: 'mock_e4', title: 'New Hire Orientation', status: 'Published', startDate: '2025-07-01', endDate: '2025-07-02', description: 'Welcoming our newest team members to the organization.', imageUrl: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e5', title: 'Product Launch: Alpha V2', status: 'Published', startDate: '2025-11-20', endDate: '2025-11-20', description: 'The next generation of our flagship product is here.', imageUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e6', title: 'Holiday Party 2025', status: 'Draft', startDate: '2025-12-18', endDate: '2025-12-18', description: 'Celebrate the end of a great year with food, drinks, and music.', imageUrl: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e7', title: 'Leadership Workshop', status: 'Published', startDate: '2025-08-22', endDate: '2025-08-23', description: 'Training session for aspiring team leaders.', imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
+  { id: 'mock_e8', title: 'Client Appreciation Dinner', status: 'Published', startDate: '2025-09-25', endDate: '2025-09-25', description: 'An evening to thank our most loyal partners.', imageUrl: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } }
+];
+
+const MOCK_DOCUMENTS: DocumentItem[] = [
+  { id: 'd1', title: 'Company Policy 2025', status: 'Draft', date: '2025-01-20', type: 'Word', year: '2025', description: 'Updated company policies.', itemRank: 5, translations: {} },
+  { id: 'm1', title: 'Q1 Financial Report', status: 'Published', date: '2025-04-10', type: 'Excel', year: '2025', description: 'Quarterly financial analysis.', itemRank: 5 },
+  { id: 'm2', title: 'Employee Handbook v2', status: 'Published', date: '2025-01-15', type: 'PDF', year: '2025', description: 'Updated HR policies.', itemRank: 5 },
+  { id: 'm3', title: 'Project Alpha Proposal', status: 'Draft', date: '2025-03-22', type: 'Word', year: '2025', description: 'Initial proposal draft.', itemRank: 5 },
+  { id: 'm4', title: 'Marketing Assets Link', status: 'Published', date: '2024-11-05', type: 'Link', year: '2024', description: 'External drive link.', itemRank: 5, url: 'https://drive.google.com' },
+  { id: 'm5', title: 'Q4 Board Presentation', status: 'Published', date: '2024-12-20', type: 'PPT', year: '2024', description: 'End of year review.', itemRank: 5 },
+  { id: 'm6', title: 'IT Security Guidelines', status: 'Published', date: '2023-06-10', type: 'PDF', year: '2023', description: 'Security protocols.', itemRank: 5 },
+  { id: 'm7', title: 'Budget Plan 2026', status: 'Draft', date: '2025-05-01', type: 'Excel', year: '2025', description: 'Forward looking budget.', itemRank: 5 },
+  { id: 'm8', title: 'Brand Guidelines', status: 'Published', date: '2022-02-14', type: 'PDF', year: '2022', description: 'Corporate identity guide.', itemRank: 5 },
+  { id: 'm9', title: 'Legacy Systems Manual', status: 'Published', date: '2020-08-30', type: 'Word', year: '2020', description: 'Old system documentation.', itemRank: 5 }
+];
+
+const MOCK_FOLDERS: ImageFolder[] = [
+  { id: 'all', name: 'All Images', count: 8 },
+  { id: 'container', name: 'Container-Images', count: 3 },
+  { id: 'card', name: 'Card-Images', count: 0 },
+  { id: 'page', name: 'Page-Images', count: 3 },
+  { id: 'covers', name: 'Covers', count: 0 },
+  { id: 'team', name: 'TeamImages', count: 1 },
+  { id: 'footer', name: 'FooterUrl', count: 0 },
+  { id: 'logos', name: 'Logos', count: 0 },
+  { id: 'tiles', name: 'Tiles', count: 0 },
+  { id: 'flags', name: 'Flags', count: 1 },
+  { id: 'slider', name: 'SliderImages', count: 0 },
+];
+
+const MOCK_IMAGES: ImageItem[] = [
+  { id: 'i1', name: 'Text Edit(10).png', url: '', folderId: 'container', title: 'Text Edit Image', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i2', name: 'benefit-img2.jpg', url: '', folderId: 'container', title: 'Benefit Image 2', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i3', name: 'benefit-img1.png', url: '', folderId: 'container', title: 'Benefit Image 1', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i4', name: 'GR_Hochhuth_Strategie_page-0002.jpg', url: '', folderId: 'page', title: 'Strategy Page 2', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i5', name: 'GR_Hochhuth_Strategie_page-0001.jpg', url: '', folderId: 'page', title: 'Strategy Page 1', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i6', name: 'GR_Hochhuth_Strategie_page-0001-1.jpg', url: '', folderId: 'page', title: 'Strategy Page 1.1', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
+  { id: 'i7', name: 'Team_Meeting.jpg', url: '', folderId: 'team', title: 'Team Meeting', createdDate: '2025-03-15', createdBy: 'Admin' },
+  { id: 'i8', name: 'Flag_US.png', url: '', folderId: 'flags', title: 'US Flag', createdDate: '2025-01-10', createdBy: 'System' },
+];
+
+const MOCK_TRANSLATION_ITEMS: TranslationItem[] = [
+  { id: '#5', sourceList: 'TopNavigation', original: 'Home', translations: { de: 'Startseite', fr: 'Accueil' }, lastUpdated: '31/12/2025' },
+  { id: '#6', sourceList: 'TopNavigation', original: 'What we offer', translations: { de: 'Was wir bieten', fr: 'Ce que nous offrons' }, lastUpdated: '31/12/2025' },
+];
+
+const MOCK_USERS: PermissionUser[] = [
+  { id: 'u1', name: 'Abhishek Tiwari', email: 'abhishek.tiwari@webstudio.de' },
+  { id: 'u2', name: 'Aditi Mishra', email: 'aditi.mishra@webstudio.de' },
+  { id: 'u3', name: 'Aman Munjal', email: 'aman.munjal@webstudio.de' },
+  { id: 'u4', name: 'Amit Kumar', email: 'amit.kumar@webstudio.de' },
+  { id: 'u5', name: 'Ankita Pandit', email: 'ankita.pandit@webstudio.de' },
+  { id: 'u6', name: 'Shivdutt Mishra', email: 'shivdutt.mishra@webstudio.de' },
+];
+
+const MOCK_CONTAINER_ITEMS: ContainerItem[] = [
+  {
+    id: 'ci1',
+    title: 'Modern Workplace',
+    status: 'Published',
+    sortOrder: 1,
+    description: 'Transform your organization with our state-of-the-art modern workplace solutions.',
+    imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=400&q=80',
+    readMore: { enabled: true, text: 'Learn More', url: '#' },
+    translations: {
+      de: { title: 'Moderner Arbeitsplatz', description: 'Transformieren Sie Ihr Unternehmen mit unseren modernen Arbeitsplatzlösungen.' }
+    }
+  },
+  {
+    id: 'ci2',
+    title: 'Digital Transformation',
+    status: 'Published',
+    sortOrder: 2,
+    description: 'Accelerate your digital journey with expert guidance and innovative technology.',
+    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=400&q=80',
+    readMore: { enabled: true, text: 'Read More', url: '#' },
+    translations: {
+      de: { title: 'Digitale Transformation', description: 'Beschleunigen Sie Ihre digitale Reise mit Expertenberatung und innovativer Technologie.' }
+    }
+  },
+  {
+    id: 'ci3',
+    title: 'Cloud Security',
+    status: 'Published',
+    sortOrder: 3,
+    description: 'Protect your valuable assets with our comprehensive cloud security framework.',
+    imageUrl: 'https://images.unsplash.com/photo-1512418490979-92798ccc1340?auto=format&fit=crop&w=400&q=80',
+    readMore: { enabled: true, text: 'Discover Now', url: '#' },
+    translations: {
+      de: { title: 'Cloud-Sicherheit', description: 'Schützen Sie Ihre wertvollen Assets mit unserem umfassenden Cloud-Sicherheits-Framework.' }
+    }
+  }
+];
+
+const MOCK_CONTACTS: ContactItem[] = [
+  {
+    id: 'c1',
+    fullName: 'Shivdutt Mishra',
+    firstName: 'Shivdutt',
+    lastName: 'Mishra',
+    status: 'Published',
+    sortOrder: 1,
+    jobTitle: 'Creative Director',
+    company: 'Web Studio CMS',
+    email: 'shivdutt.mishra@webstudio.de',
+    phone: '+49 30 1234567',
+    description: 'Lead creative visionary with over 15 years of experience in digital design and architecture.',
+    imageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+  },
+  {
+    id: 'c2',
+    fullName: 'Aditi Mishra',
+    firstName: 'Aditi',
+    lastName: 'Mishra',
+    status: 'Published',
+    sortOrder: 2,
+    jobTitle: 'UI/UX Designer',
+    company: 'Web Studio CMS',
+    email: 'aditi.mishra@webstudio.de',
+    phone: '+49 30 7654321',
+    description: 'Expert in creating intuitive user experiences and beautiful interfaces for enterprise platforms.',
+    imageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+  },
+  {
+    id: 'c3',
+    fullName: 'Aman Munjal',
+    firstName: 'Aman',
+    lastName: 'Munjal',
+    status: 'Published',
+    sortOrder: 3,
+    jobTitle: 'Senior Developer',
+    company: 'Power Platforms',
+    email: 'aman.munjal@webstudio.de',
+    phone: '+49 30 9998887',
+    description: 'Full-stack developer specializing in SharePoint and Power Platform integrations.',
+    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
+  }
+];
+
+const MOCK_SLIDER_ITEMS: SliderItem[] = [
+  {
+    id: 's1',
+    title: 'Excellence in Enterprise Solutions',
+    subtitle: 'Driving Innovation Forward',
+    description: 'We help global enterprises transform their digital presence through cutting-edge CMS solutions.',
+    imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+    status: 'Published',
+    sortOrder: 1,
+    ctaText: 'Get Started',
+    ctaUrl: '#'
+  },
+  {
+    id: 's2',
+    title: 'Future-Proof Your Business',
+    subtitle: 'Scalable & Secure',
+    description: 'Our platform provides the security and scalability needed for modern distributed organizations.',
+    imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
+    status: 'Published',
+    sortOrder: 2,
+    ctaText: 'Learn More',
+    ctaUrl: '#'
+  }
+];
+
+const MOCK_GROUPS: PermissionGroup[] = [
+  { id: 'members', name: 'WebStudio Members', description: 'Control access for visitors and basic users. Ideal for granting read-only or limited permissions.', type: 'Members', memberIds: ['u1', 'u2', 'u3', 'u4', 'u5'] },
+  { id: 'visitors', name: 'WebStudio Visitors', description: 'Control access for visitors and basic users. Ideal for granting read-only or limited permissions.', type: 'Visitors', memberIds: [] },
+  { id: 'owners', name: 'WebStudio Owners', description: 'Manage high-level permissions for administrators and owners. Use with caution.', type: 'Owners', memberIds: ['u6'] },
+];
+
+const recalculateFolderCounts = (folders: ImageFolder[], images: ImageItem[]): ImageFolder[] => {
+  return folders.map(f => {
+    if (f.id === 'all') return { ...f, count: images.length };
+    return { ...f, count: images.filter(i => i.folderId === f.id).length };
+  });
+};
+
+interface AppState {
+  viewMode: ViewMode;
+  activeModal: ModalType;
+  siteConfig: SiteConfig;
+  themeConfig: ThemeConfig;
+  pages: Page[];
+  news: NewsItem[];
+  events: EventItem[];
+  documents: DocumentItem[];
+  containerItems: ContainerItem[];
+  contacts: ContactItem[];
+  sliderItems: SliderItem[];
+  images: ImageItem[];
+  imageFolders: ImageFolder[];
+  translationItems: TranslationItem[];
+  permissionGroups: PermissionGroup[];
+  permissionUsers: PermissionUser[];
+  contactQueries: ContactQuery[];
+  currentPageId: string;
+  currentLanguage: LanguageCode;
+
+  uiLabels: Record<string, MultilingualText>;
+  editingLabelKey: string | null;
+  editingContainerId: string | null;
+
+  toggleViewMode: () => void;
+  openModal: (type: ModalType) => void;
+  closeModal: () => void;
+  updateThemeVar: (key: string, value: string) => void;
+  setThemeConfig: (config: ThemeConfig) => void;
+  setCurrentPage: (id: string) => void;
+  resetTheme: () => void;
+  setLanguage: (lang: LanguageCode) => void;
+  setEditingContainerId: (id: string | null) => void;
+
+  updateNavPosition: (pos: SiteConfig['navPosition']) => void;
+  updateNavAlignment: (align: SiteConfig['navAlignment']) => void;
+  updateHeaderConfig: (config: Partial<SiteConfig>) => void;
+  updateLogo: (logo: SiteConfig['logo']) => void;
+  addNavItem: (item: NavItem) => void;
+  updateNavItem: (item: NavItem) => void;
+  deleteNavItem: (id: string) => void;
+
+  addNews: (item: NewsItem) => void;
+  updateNews: (item: NewsItem) => void;
+  deleteNews: (id: string) => void;
+
+  addEvent: (item: EventItem) => void;
+  updateEvent: (item: EventItem) => void;
+  deleteEvent: (id: string) => void;
+
+  addDocument: (item: DocumentItem) => void;
+  updateDocument: (item: DocumentItem) => void;
+  deleteDocument: (id: string) => void;
+
+  addImage: (item: ImageItem) => void;
+  updateImage: (item: ImageItem) => void;
+  deleteImage: (id: string) => void;
+
+  updateContainerItem: (item: ContainerItem) => void;
+  deleteContainerItem: (id: string) => void;
+
+  updateContact: (item: ContactItem) => void;
+  deleteContact: (id: string) => void;
+
+  updateSliderItem: (item: SliderItem) => void;
+  deleteSliderItem: (id: string) => void;
+
+  updateTranslationItem: (id: string, sourceList: string, original: string, lang: string, value: string) => void;
+
+  // Permission Actions
+  createPermissionGroup: (group: PermissionGroup) => void;
+  updatePermissionGroup: (group: PermissionGroup) => void;
+  addMemberToGroup: (groupId: any, userId: any) => void;
+  removeMemberFromGroup: (groupId: any, userId: any) => void;
+
+  // Contact Query Actions
+  addContactQuery: (query: ContactQuery) => void;
+  deleteContactQuery: (ids: any) => void;
+
+  updateFooterConfig: (config: Partial<SiteConfig['footer']>) => void;
+
+  openLabelEditor: (key: string) => void;
+  updateLabel: (key: string, text: string, lang: LanguageCode) => void;
+
+  addPage: (page: Page) => void;
+  updatePage: (page: Page) => void;
+  addContainer: (pageId: string, container: Container) => void;
+  updateContainer: (pageId: string, container: Container) => void;
+  deleteContainer: (pageId: string, cId: any) => void;
+  reorderContainers: (pageId: string, newOrder: Container[]) => void;
+}
+
+export const useStore = create<AppState>()(
+  persist(
+    (set) => ({
+      viewMode: ViewMode.PREVIEW,
+      activeModal: ModalType.NONE,
+      themeConfig: DEFAULT_THEME,
+      pages: MOCK_PAGES,
+      news: MOCK_NEWS,
+      events: MOCK_EVENTS,
+      documents: MOCK_DOCUMENTS,
+      containerItems: MOCK_CONTAINER_ITEMS,
+      contacts: MOCK_CONTACTS,
+      sliderItems: MOCK_SLIDER_ITEMS,
+      images: MOCK_IMAGES,
+      imageFolders: MOCK_FOLDERS,
+      translationItems: MOCK_TRANSLATION_ITEMS,
+      permissionGroups: MOCK_GROUPS,
+      permissionUsers: MOCK_USERS,
+      contactQueries: [],
+      currentPageId: '1',
+      currentLanguage: 'en',
+      uiLabels: INITIAL_UI_LABELS,
+      editingLabelKey: null,
+      editingContainerId: null,
+      siteConfig: {
+        name: 'My Enterprise Site',
+        languages: ['en', 'de', 'fr', 'es'],
+        defaultLanguage: 'en',
+        navPosition: 'right',
+        navAlignment: 'center',
+        headerWidth: 'full',
+        headerBackgroundColor: '#ffffff',
+        logo: { url: '', position: 'left', width: '150px' },
+        navigation: MOCK_NAV,
+        footer: {
+          template: 'Table',
+          backgroundColor: 'site-color',
+          alignment: 'left',
+          subFooterText: 'Powered By : Web Studio CMS',
+          fontSettings: { headingSize: '16px', subHeadingSize: '14px' },
+          columns: [
+            { id: '1', title: 'Platform', links: [{ id: 'l1', label: 'SharePoint Online', url: '#' }, { id: 'l2', label: 'Power Platform', url: '#' }] },
+            { id: '2', title: 'Legal', links: [{ id: 'l4', label: 'Privacy Policy', url: '#' }, { id: 'l5', label: 'Terms of Service', url: '#' }] },
+            { id: '3', title: 'Company', links: [{ id: 'l7', label: 'About Us', url: '#' }, { id: 'l9', label: 'Contact', url: '#' }] }
+          ],
+          contactInfo: { address: 'Christinenstr 16, 10119 Berlin', email: 'info@webstudio.de', phone: '+49 30 868706600' },
+          socialLinks: { linkedin: 'https://linkedin.com', facebook: '', twitter: '', instagram: '' },
+          copyright: { en: '© 2026 Web Studio Corp', de: '© 2026 Unternehmen Corp', fr: '© 2026 Entreprise Corp', es: '© 2026 Empresa Corp' }
+        }
+      },
+
+      toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === ViewMode.PREVIEW ? ViewMode.EDIT : ViewMode.PREVIEW })),
+      openModal: (type) => set({ activeModal: type }),
+      closeModal: () => set({ activeModal: ModalType.NONE, editingLabelKey: null, editingContainerId: null }),
+      updateThemeVar: (key, value) => set((state) => ({ themeConfig: { ...state.themeConfig, [key]: value } })),
+      setThemeConfig: (config) => set({ themeConfig: config }),
+      setCurrentPage: (id) => set({ currentPageId: id }),
+      resetTheme: () => set({ themeConfig: DEFAULT_THEME }),
+      setLanguage: (lang) => set({ currentLanguage: lang }),
+      setEditingContainerId: (id) => set({ editingContainerId: id }),
+
+      updateNavPosition: (pos) => set((state) => ({ siteConfig: { ...state.siteConfig, navPosition: pos } })),
+      updateNavAlignment: (align) => set((state) => ({ siteConfig: { ...state.siteConfig, navAlignment: align } })),
+      updateHeaderConfig: (config) => set((state) => ({ siteConfig: { ...state.siteConfig, ...config } })),
+      updateLogo: (logo) => set((state) => ({ siteConfig: { ...state.siteConfig, logo } })),
+      addNavItem: (item) => set((state) => ({ siteConfig: { ...state.siteConfig, navigation: [...state.siteConfig.navigation, item] } })),
+      updateNavItem: (item) => set((state) => ({ siteConfig: { ...state.siteConfig, navigation: state.siteConfig.navigation.map(n => n.id === item.id ? item : n) } })),
+      deleteNavItem: (id) => set((state) => ({ siteConfig: { ...state.siteConfig, navigation: state.siteConfig.navigation.filter(n => n.id !== id && n.parentId !== id) } })),
+
+      addNews: (item) => set((state) => ({ news: [...state.news, item] })),
+      updateNews: (item) => set((state) => ({ news: state.news.map(n => n.id === item.id ? item : n) })),
+      deleteNews: (id) => set((state) => ({ news: state.news.filter(n => n.id !== id) })),
+
+      addEvent: (item) => set((state) => ({ events: [...state.events, item] })),
+      updateEvent: (item) => set((state) => ({ events: state.events.map(n => n.id === item.id ? item : n) })),
+      deleteEvent: (id) => set((state) => ({ events: state.events.filter(n => n.id !== id) })),
+
+      addDocument: (item) => set((state) => ({ documents: [...state.documents, item] })),
+      updateDocument: (item) => set((state) => ({ documents: state.documents.map(n => n.id === item.id ? item : n) })),
+      deleteDocument: (id) => set((state) => ({ documents: state.documents.filter(n => n.id !== id) })),
+
+      addImage: (item) => set((state) => {
+        const newImages = [...state.images, item];
+        return {
+          images: newImages,
+          imageFolders: recalculateFolderCounts(state.imageFolders, newImages)
+        };
+      }),
+      updateImage: (item) => set((state) => {
+        const newImages = state.images.map(i => i.id === item.id ? item : i);
+        return {
+          images: newImages,
+          imageFolders: recalculateFolderCounts(state.imageFolders, newImages)
+        };
+      }),
+      deleteImage: (id) => set((state) => {
+        const newImages = state.images.filter(i => i.id !== id);
+        return {
+          images: newImages,
+          imageFolders: recalculateFolderCounts(state.imageFolders, newImages)
+        };
+      }),
+
+      updateContainerItem: (item) => set((state) => ({ containerItems: state.containerItems.map(i => i.id === item.id ? item : i) })),
+      deleteContainerItem: (id) => set((state) => ({ containerItems: state.containerItems.filter(i => i.id !== id) })),
+
+      updateContact: (item) => set((state) => ({ contacts: state.contacts.map(i => i.id === item.id ? item : i) })),
+      deleteContact: (id) => set((state) => ({ contacts: state.contacts.filter(i => i.id !== id) })),
+
+      updateSliderItem: (item) => set((state) => ({ sliderItems: state.sliderItems.map(i => i.id === item.id ? item : i) })),
+      deleteSliderItem: (id) => set((state) => ({ sliderItems: state.sliderItems.filter(i => i.id !== id) })),
+
+      updateTranslationItem: (id, sourceList, original, lang, value) => set((state) => {
+        const existingIndex = state.translationItems.findIndex(item => item.id === id);
+        if (existingIndex >= 0) {
+          const newItems = [...state.translationItems];
+          newItems[existingIndex] = {
+            ...newItems[existingIndex],
+            translations: { ...newItems[existingIndex].translations, [lang]: value },
+            lastUpdated: new Date().toLocaleDateString('en-GB')
+          };
+          return { translationItems: newItems };
+        } else {
+          const newItem: TranslationItem = {
+            id,
+            sourceList,
+            original,
+            translations: { [lang]: value },
+            lastUpdated: new Date().toLocaleDateString('en-GB')
+          };
+          return { translationItems: [...state.translationItems, newItem] };
+        }
+      }),
+
+      // Permission Actions
+      createPermissionGroup: (group) => set((state) => ({ permissionGroups: [...state.permissionGroups, group] })),
+      updatePermissionGroup: (group) => set((state) => ({ permissionGroups: state.permissionGroups.map(g => g.id === group.id ? group : g) })),
+      addMemberToGroup: (groupId, userId) => set((state) => ({
+        permissionGroups: state.permissionGroups.map(g => g.id === groupId ? { ...g, memberIds: [...g.memberIds, userId] } : g)
+      })),
+      removeMemberFromGroup: (groupId, userId) => set((state) => ({
+        permissionGroups: state.permissionGroups.map(g => g.id === groupId ? { ...g, memberIds: g.memberIds.filter(id => id !== userId) } : g)
+      })),
+
+      // Contact Query Actions
+      addContactQuery: (query) => set((state) => ({ contactQueries: [query, ...state.contactQueries] })),
+      deleteContactQuery: (ids) => set((state) => ({ contactQueries: state.contactQueries.filter(q => !ids.includes(q.id)) })),
+
+      updateFooterConfig: (config) => set((state) => ({ siteConfig: { ...state.siteConfig, footer: { ...state.siteConfig.footer, ...config } } })),
+
+      openLabelEditor: (key) => set({ activeModal: ModalType.LABEL_EDITOR, editingLabelKey: key }),
+      updateLabel: (key, text, lang) => set((state) => ({ uiLabels: { ...state.uiLabels, [key]: { ...state.uiLabels[key], [lang]: text } }, activeModal: ModalType.NONE, editingLabelKey: null })),
+
+      addPage: (page) => set((state) => ({ pages: [...state.pages, { ...page, containers: page.containers && page.containers.length > 0 ? page.containers : createDefaultContainers(page.id) }] })),
+      updatePage: (page) => set((state) => ({ pages: state.pages.map(p => p.id === page.id ? page : p) })),
+      addContainer: (pageId, container) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: [...p.containers, { ...container, pageId }] } : p) })),
+      updateContainer: (pageId, container) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: p.containers.map(c => c.id === container.id ? container : c) } : p) })),
+      deleteContainer: (pageId, cId) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: p.containers.filter(c => c.id !== cId) } : p) })),
+      reorderContainers: (pageId, newOrder) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: newOrder } : p) })),
+    }),
+    {
+      name: 'web-studio-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ themeConfig: state.themeConfig, siteConfig: state.siteConfig, pages: state.pages, news: state.news, events: state.events, documents: state.documents, containerItems: state.containerItems, contacts: state.contacts, sliderItems: state.sliderItems, images: state.images, currentLanguage: state.currentLanguage, uiLabels: state.uiLabels, translationItems: state.translationItems, permissionGroups: state.permissionGroups, permissionUsers: state.permissionUsers, contactQueries: state.contactQueries }),
+    }
+  )
+);
+
+export const getTranslation = (key: string, lang: LanguageCode): string => {
+  const item = INITIAL_UI_LABELS[key];
+  if (!item) return key;
+  return item[lang] || item['en'];
+};
+
+export const getLocalizedText = (text: MultilingualText | string, lang: LanguageCode): string => {
+  if (typeof text === 'string') return text;
+  if (!text) return '';
+  return text[lang] || text.en || '';
+};
+
+export const getItemTranslation = (item: any, lang: LanguageCode, field: string): string => {
+  if (!item) return '';
+
+  // Check specific language
+  if (item.translations && item.translations[lang]) {
+    if (typeof item.translations[lang] === 'string' && field === 'title') {
+      return item.translations[lang];
+    }
+    if (item.translations[lang][field]) {
+      return item.translations[lang][field];
+    }
+  }
+
+  // Fallback to English translation
+  if (item.translations && item.translations['en']) {
+    if (typeof item.translations['en'] === 'string' && field === 'title') {
+      return item.translations['en'];
+    }
+    if (item.translations['en'][field]) {
+      return item.translations['en'][field];
+    }
+  }
+
+  return item[field] || '';
+};
+
+export const getGlobalTranslation = (id: string, translationItems: any[], lang: LanguageCode, fallback: string): string => {
+  const item = translationItems?.find(t => t.id === id);
+  if (!item) return fallback;
+  return item.translations[lang] || item.translations.en || fallback;
+};
