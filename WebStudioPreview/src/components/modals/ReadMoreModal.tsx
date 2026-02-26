@@ -26,11 +26,11 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
             <GenericModal
                 title={item.title}
                 onClose={onClose}
-                width="w-[1000px]"
+                width="w-[800px]"
                 noFooter={true}
                 customFooter={customFooter}
             >
-                <div className="flex flex-col h-full max-h-[70vh] overflow-y-auto pr-2">
+                <div className="flex flex-col">
                     {/* Image Section */}
                     {images.length > 0 && (
                         <div className="w-full h-[400px] bg-gray-100 relative mb-8 rounded-sm overflow-hidden flex-shrink-0 group">
@@ -60,6 +60,12 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
                                     <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary-color)]">
                                         <Calendar className="w-4 h-4" />
                                         {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {item.endDate && item.endDate !== item.date && (
+                                            <>
+                                                <span className="text-gray-400 mx-1"> - </span>
+                                                {new Date(item.endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -70,9 +76,10 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
                             )}
                         </div>
 
-                        <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-base">
-                            {item.desc || item.description || "No description available."}
-                        </div>
+                        <div
+                            className="text-gray-700 leading-relaxed text-base jodit-content"
+                            dangerouslySetInnerHTML={{ __html: item.readMoreText || item.desc || item.description || "No description available." }}
+                        />
                     </div>
                 </div>
             </GenericModal>

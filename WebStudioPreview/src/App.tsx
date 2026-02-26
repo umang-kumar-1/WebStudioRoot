@@ -3,8 +3,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { useStore } from './store';
 import { PreviewArea } from './components/PreviewArea';
 import './App.css';
-import Test from './components/Test';
-import MediaLibrary from './components/MediaLibrary';
 
 function App() {
   const { themeConfig } = useStore();
@@ -18,9 +16,9 @@ function App() {
 
   return (
     <BrowserRouter>
-      <PreviewArea />
-      <Test />
-      <MediaLibrary />
+      <div className="h-screen w-screen flex flex-col overflow-hidden bg-gray-50 text-gray-900 border-x border-gray-100 mx-auto max-w-[1920px]">
+        <PreviewArea />
+      </div>
     </BrowserRouter>
   );
 }

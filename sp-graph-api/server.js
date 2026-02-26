@@ -15,6 +15,39 @@ app.get("/api/health", (req, res) => {
 });
 
 /**
+ * LIST PublishingDocuments (folders + files)
+ * /api/publishing-documents
+ * /api/publishing-documents?folderId=...
+ */
+app.get("/api/publishing-documents", async (req, res) => {
+  try {
+    const token = await getToken();
+    const folderId = req.query.folderId;
+    const driveId = process.env.DOCUMENTS_DRIVE_ID;
+
+    const url = folderId
+      ? `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${folderId}/children`
+      : `https://graph.microsoft.com/v1.0/drives/${driveId}/root/children`;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const items = response.data.value.map(i => ({
+      id: i.id,
+      name: i.name,
+      type: i.folder ? "folder" : "file",
+      mimeType: i.file?.mimeType || null
+    }));
+
+    res.json(items);
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Unable to load PublishingDocuments" });
+  }
+});
+
+/**
  * LIST Documents (default Documents library)
  * /api/list
  * /api/list?folderId=...

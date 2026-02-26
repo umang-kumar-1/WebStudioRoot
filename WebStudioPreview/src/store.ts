@@ -4,122 +4,241 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { ModalType, ViewMode, ContainerType } from './types';
 import type { Page, SiteConfig, ThemeConfig, LanguageCode, MultilingualText, NavItem, NewsItem, EventItem, DocumentItem, ContainerItem, ContactItem, SliderItem, Container, ImageItem, ImageFolder, TranslationItem, PermissionGroup, PermissionUser, ContactQuery } from './types';
+import { API_BASE } from './services/apiTest';
 
 
 // Static UI Translations (Initial State)
 export const INITIAL_UI_LABELS: Record<string, MultilingualText> = {
-  // App Header
   APP_TITLE: { en: 'Web Studio', de: 'Web Studio', fr: 'Web Studio', es: 'Web Studio' },
   APP_SUBTITLE: { en: 'Enterprise CMS', de: 'Unternehmens-CMS', fr: 'CMS d\'entreprise', es: 'CMS empresarial' },
-
-  // Sidebar Sections
   SITE_GLOBALS: { en: 'Site Globals', de: 'Globale Einstellungen', fr: 'Paramètres globaux', es: 'Configuración global' },
   PAGES: { en: 'Pages', de: 'Seiten', fr: 'Pages', es: 'Páginas' },
   SECTION_PAGE_INFO: { en: 'Page Info', de: 'Seiteninfo', fr: 'Info page', es: 'Info página' },
-
-  // Page Info Labels
   LABEL_TITLE: { en: 'Title', de: 'Titel', fr: 'Titre', es: 'Título' },
+  LABEL_SUBTITLE: { en: 'Subtitle', de: 'Untertitel', fr: 'Sous-titre', es: 'Subtítulo' },
+  LABEL_CTA_BUTTON: { en: 'CTA Button', de: 'Call-to-Action-Button', fr: 'Bouton CTA', es: 'Botón CTA' },
   LABEL_STATUS: { en: 'Status', de: 'Status', fr: 'Statut', es: 'Estado' },
   LABEL_MODIFIED: { en: 'Modified', de: 'Geändert', fr: 'Modifié', es: 'Modificado' },
-
-  // Toggle Buttons
   PAGE_PREVIEW: { en: 'Page Preview', de: 'Seitenvorschau', fr: 'Aperçu de la page', es: 'Vista previa' },
   EDIT_MODE: { en: 'Edit Mode', de: 'Bearbeitungsmodus', fr: 'Mode édition', es: 'Modo edición' },
-
-  // Management Items
+  CONTENT_TRANS: { en: 'Content Translator', de: 'Inhaltsübersetzer', fr: 'Traducteur de contenu', es: 'Traductor de contenido' },
   NAV_MGMT: { en: 'Navigation Management', de: 'Navigationsverwaltung', fr: 'Gestion de navigation', es: 'Gestión de navegación' },
   NEWS_MGMT: { en: 'News Management', de: 'Nachrichtenverwaltung', fr: 'Gestion des actualités', es: 'Gestión de noticias' },
   EVENT_MGMT: { en: 'Event Management', de: 'Veranstaltungsverwaltung', fr: 'Gestion des événements', es: 'Gestión de eventos' },
   DOC_MGMT: { en: 'Document Management', de: 'Dokumentenverwaltung', fr: 'Gestion documentaire', es: 'Gestión de documentos' },
-  FOOTER_MGMT: { en: 'Footer Management', de: 'Fußzeilenverwaltung', fr: 'Gestion de pied de page', es: 'Gestión de pie de página' },
+  FOOTER_MGMT: { en: 'Footer Management', de: 'Fußzeilenverwaltung', fr: 'Gestion de pied de page', es: 'Gestión de pie de page' },
   SITE_MGMT: { en: 'Site Management', de: 'Seitenverwaltung', fr: 'Gestion du site', es: 'Gestión del sitio' },
-  IMG_MGMT: { en: 'Image Management', de: 'Bildverwaltung', fr: 'Gestion des images', es: 'Gestión de imágenes' },
-  CONTENT_TRANS: { en: 'Content Translator', de: 'Inhaltsübersetzer', fr: 'Traducteur de contenu', es: 'Traductor de contenu' },
+  IMG_MGMT: { en: 'Image Management', de: 'Bildverwaltung', fr: 'Gestion des images', es: 'Gestion des images' },
   PERM_MGMT: { en: 'Permission Management', de: 'Berechtigungsverwaltung', fr: 'Gestion des permissions', es: 'Gestión de permisos' },
   CONTACT_Q: { en: 'Contact Form Queries', de: 'Kontaktanfragen', fr: 'Demandes de contact', es: 'Consultas de contacto' },
   STYLING: { en: 'Styling Configuration', de: 'Design-Konfiguration', fr: 'Configuration du style', es: 'Configuración de estilo' },
+  BTN_EDIT: { en: 'Edit', de: 'Bearbeiten', fr: 'Éditer', es: 'Editar' },
+  LABEL_ORIGINAL: { en: 'Original', de: 'Original', fr: 'Original', es: 'Original' },
+  LABEL_TRANSLATION: { en: 'Translation', de: 'Übersetzung', fr: 'Traduction', es: 'Traducción' },
+  LABEL_TRANSLATED: { en: 'Translated', de: 'Übersetzt', fr: 'Traduit', es: 'Traducido' },
+  BTN_SUGGEST_AI: { en: 'Suggest with AI', de: 'Mit KI vorschlagen', fr: 'Suggérer avec IA', es: 'Sugerir con IA' },
+  TITLE_EDIT_TRANSLATION: { en: 'Edit Translation', de: 'Übersetzung bearbeiten', fr: 'Modifier la traduction', es: 'Editar traducción' },
+  CONTAINER_ITEM_MGMT: { en: 'Container Items', de: 'Container-Elemente', fr: 'Éléments de conteneur', es: 'elementos de contenedor' },
+  TITLE_CREATE_CONTAINER_ITEM: { en: 'Create Container Item', de: 'Container-Element erstellen', fr: 'Créer un élément de conteneur', es: 'Crear elemento de contenedor' },
+  PLACEHOLDER_ITEM_TITLE: { en: 'Enter item title...', de: 'Titel des Elements eingeben...', fr: 'Entrez le titre de l\'élément...', es: 'Ingrese el título del elemento...' },
+  TITLE_EDIT_CONTAINER_ITEM: { en: 'Edit Container Item', de: 'Container-Element bearbeiten', fr: 'Modifier l\'élément de conteneur', es: 'Editar elemento de contenedor' },
+  TAB_BASIC_INFO: { en: 'Basic Info', de: 'Basis-Info', fr: 'Infos de base', es: 'Información básica' },
+  TAB_IMAGE_INFO: { en: 'Image Info', de: 'Bild-Info', fr: 'Infos image', es: 'Información de imagen' },
+  TAB_SEO: { en: 'SEO', de: 'SEO', fr: 'SEO', es: 'SEO' },
+  TAB_TRANSLATION: { en: 'Translation', de: 'Übersetzung', fr: 'Traduction', es: 'Traducción' },
+  LABEL_SORT_ORDER: { en: 'Sort Order', de: 'Sortierung', fr: 'Ordre de tri', es: 'Orden de clasificación' },
+  LABEL_ADD_READ_MORE: { en: 'Add Read More Link', de: 'Mehr lesen Link hinzufügen', fr: 'Ajouter un lien Lire la suite', es: 'Agregar enlace Leer más' },
+  LABEL_LINK_URL: { en: 'Link URL', de: 'Link URL', fr: 'URL du lien', es: 'URL del enlace' },
+  LABEL_LINK_TEXT: { en: 'Link Text', de: 'Link Text', fr: 'Texte du lien', es: 'Texto del enlace' },
+  LABEL_ORIGINAL_DESC: { en: 'Original Description', de: 'Originale Beschreibung', fr: 'Description originale', es: 'Descripción original' },
+  PLACEHOLDER_ITEM_DESC: { en: 'Enter item description...', de: 'Beschreibung des Elements eingeben...', fr: 'Entrez la description de l\'élément...', es: 'Ingrese la descripción del elemento...' },
+  LABEL_SEO_TITLE: { en: 'SEO Title', de: 'SEO Titel', fr: 'Titre SEO', es: 'Título SEO' },
+  LABEL_META_DESC: { en: 'Meta Description', de: 'Meta-Beschreibung', fr: 'Méta description', es: 'Meta descripción' },
+  LABEL_KEYWORDS: { en: 'Keywords', de: 'Schlagworte', fr: 'Mots-clés', es: 'Palabras clave' },
+  LABEL_TRANSLATED_TITLE: { en: 'Translated Title', de: 'Übersetzter Titel', fr: 'Titre traduit', es: 'Título traducido' },
+  LABEL_TRANSLATED_READ_MORE: { en: 'Translated Link Text', de: 'Übersetzter Link-Text', fr: 'Texte de lien traduit', es: 'Texto de enlace traducido' },
+  LABEL_TRANSLATED_DESC: { en: 'Translated Description', de: 'Übersetzte Beschreibung', fr: 'Description traduite', es: 'Descripción traducida' },
+  BTN_ADD_ITEM: { en: 'Add Item', de: 'Element hinzufügen', fr: 'Ajouter un élément', es: 'Agregar elemento' },
+  LABEL_SEARCH_ITEMS: { en: 'Search items...', de: 'Elemente suchen...', fr: 'Rechercher des éléments...', es: 'Buscar elementos...' },
+  MSG_CONTAINER_ITEM_DESC: { en: 'Manage reusable items for your containers.', de: 'Verwalten Sie wiederverwendbare Elemente für Ihre Container.', fr: 'Gérez les éléments réutilisables pour vos conteneurs.', es: 'Administre elementos reutilizables para sus contenedores.' },
+
+  // Contact Management
+  CONTACT_MGMT: { en: 'Contact Management', de: 'Kontaktverwaltung', fr: 'Gestion des contacts', es: 'Gestión de contactos' },
+  TITLE_CREATE_CONTACT: { en: 'Create New Contact', de: 'Neuen Kontakt erstellen', fr: 'Créer un nouveau contact', es: 'Crear nuevo contacto' },
+  TITLE_EDIT_CONTACT: { en: 'Edit Contact', de: 'Kontakt bearbeiten', fr: 'Modifier le contact', es: 'Editar contacto' },
+  LABEL_FIRST_NAME: { en: 'First Name', de: 'Vorname', fr: 'Prénom', es: 'Nombre' },
+  LABEL_LAST_NAME: { en: 'Last Name', de: 'Nachname', fr: 'Nom de famille', es: 'Apellido' },
+  LABEL_FULL_NAME: { en: 'Full Name', de: 'Vollständiger Name', fr: 'Nom complet', es: 'Nombre completo' },
+  LABEL_JOB_TITLE: { en: 'Job Title', de: 'Berufsbezeichnung', fr: 'Titre du poste', es: 'Título del trabajo' },
+  LABEL_COMPANY: { en: 'Company', de: 'Firma', fr: 'Entreprise', es: 'Empresa' },
+  LABEL_EMAIL: { en: 'Email', de: 'E-Mail', fr: 'E-mail', es: 'Correo electrónico' },
+  LABEL_PHONE: { en: 'Phone', de: 'Telefon', fr: 'Téléphone', es: 'Teléfono' },
+  TAB_SOCIAL_LINKS: { en: 'Social Links', de: 'Soziale Medien', fr: 'Réseaux sociaux', es: 'Redes sociales' },
+  LABEL_LINKEDIN: { en: 'LinkedIn URL', de: 'LinkedIn URL', fr: 'URL LinkedIn', es: 'URL de LinkedIn' },
+  LABEL_TWITTER: { en: 'Twitter URL', de: 'Twitter URL', fr: 'URL Twitter', es: 'URL de Twitter' },
+  LABEL_FACEBOOK: { en: 'Facebook URL', de: 'Facebook URL', fr: 'URL Facebook', es: 'URL de Facebook' },
+  PLACEHOLDER_CONTACT_NAME: { en: 'Enter contact name...', de: 'Kontaktname eingeben...', fr: 'Entrez le nom du contact...', es: 'Ingrese el nombre del contacto...' },
+  MSG_CONTACT_DESC: { en: 'Manage your team members and contacts.', de: 'Verwalten Sie Ihre Teammitglieder und Kontakte.', fr: 'Gérez vos membres d\'équipe et vos contacts.', es: 'Administre los miembros de su equipo y contactos.' },
+
+  // General Buttons & Labels
+  BTN_CREATE: { en: 'Create', de: 'Erstellen', fr: 'Créer', es: 'Crear' },
+  BTN_CANCEL: { en: 'Cancel', de: 'Abbrechen', fr: 'Annuler', es: 'Cancelar' },
+  BTN_SAVE: { en: 'Save', de: 'Speichern', fr: 'Enregistrer', es: 'Guardar' },
+  BTN_DELETE: { en: 'Delete', de: 'Löschen', fr: 'Supprimer', es: 'Eliminar' },
+  BTN_REMOVE: { en: 'Remove', de: 'Entfernen', fr: 'Retirer', es: 'Eliminar' },
+  LABEL_DESCRIPTION: { en: 'Description', de: 'Beschreibung', fr: 'Description', es: 'Descripción' },
+  LABEL_ACTIONS: { en: 'Actions', de: 'Aktionen', fr: 'Actions', es: 'Acciones' },
+  TAB_IMAGE: { en: 'Image Information', de: 'Bild', fr: 'Image', es: 'Imagen' },
+
+  // Image Upload Messages
+  MSG_PASTE_OR_UPLOAD: { en: 'Paste image or click to upload', de: 'Bild einfügen oder zum Hochladen klicken', fr: 'Collez une image ou cliquez pour télécharger', es: 'Pegue la imagen o haga clic para cargar' },
+  MSG_SUPPORTS_IMAGE_FORMATS: { en: 'Supports JPG, PNG, WEBP', de: 'Unterstützt JPG, PNG, WEBP', fr: 'Supporte JPG, PNG, WEBP', es: 'Soporta JPG, PNG, WEBP' },
+  MSG_UPLOADING: { en: 'Uploading...', de: 'Wird hochgeladen...', fr: 'Téléchargement...', es: 'Subiendo...' },
+  LABEL_CHOOSE_FROM_GALLERY: { en: 'Choose from Gallery', de: 'Aus Galerie wählen', fr: 'Choisir dans la galerie', es: 'Elegir de la galería' },
+
+  // Translation Info
+  MSG_TRANSLATION_INFO: { en: 'Provide translations for multilingual support. Fallback to English if empty.', de: 'Geben Sie Übersetzungen für mehrsprachige Unterstützung an. Fallback auf Englisch, wenn leer.', fr: 'Fournissez des traductions pour le support multilingue. Retour à l\'anglais si vide.', es: 'Proporcione traducciones para soporte multilingüe. Vuelve a inglés si está vacío.' },
+
+  // Missing Labels for Contact Manager & others
+  BTN_CLOSE: { en: 'Close', de: 'Schließen', fr: 'Fermer', es: 'Cerrar' },
+  LABEL_VISUAL_VIEW: { en: 'Visual View', de: 'Visuelle Ansicht', fr: 'Vue visuelle', es: 'Vista visual' },
+  LABEL_LIST_VIEW: { en: 'List View', de: 'Listenansicht', fr: 'Vue liste', es: 'Vista de lista' },
+  BTN_READ_MORE: { en: 'Read More', de: 'Mehr lesen', fr: 'Lire la suite', es: 'Leer más' },
+  LABEL_SEARCH_CONTACTS: { en: 'Search contacts...', de: 'Kontakte suchen...', fr: 'Rechercher des contacts...', es: 'Buscar contactos...' },
+  LABEL_SORT_BY: { en: 'Sort by', de: 'Sortieren nach', fr: 'Trier par', es: 'Ordenar por' },
+  BTN_ADD_CONTACT: { en: 'Add Contact', de: 'Kontakt hinzufügen', fr: 'Ajouter un contact', es: 'Agregar contacto' },
+  MSG_REQ_TITLE: { en: 'This field is required.', de: 'Dieses Feld ist erforderlich.', fr: 'Ce champ est obligatoire.', es: 'Este campo es obligatorio.' },
+  LABEL_IMAGE_URL: { en: 'Image URL', de: 'Bild URL', fr: 'URL de l\'image', es: 'URL de la imagen' },
+  LABEL_IMAGE_NAME: { en: 'Image Name', de: 'Bildname', fr: 'Nom de l\'image', es: 'Nombre de la imagen' },
+  LABEL_TRANSLATED_JOB_TITLE: { en: 'Translated Job Title', de: 'Übersetzter Beruf', fr: 'Titre du poste traduit', es: 'Título del trabajo traducido' },
+  LABEL_OPEN_OOTB_FORM: { en: 'Open out-of-the-box form', de: 'Standard-Formular öffnen', fr: 'Ouvrir le formulaire standard', es: 'Ouvrir le formulaire standard' },
+  TAB_URL: { en: 'URL', de: 'URL', fr: 'URL', es: 'URL' },
+  BTN_DEFAULT_LOGO: { en: 'Default Logo', de: 'Standardlogo', fr: 'Logo par défaut', es: 'Logo predeterminiert' },
+
+  // Navigation Manager - Header Configuration
+  NAV_HEADER_CONFIG: { en: 'Header Configuration', de: 'Kopfzeilen-Konfiguration', fr: 'Configuration de l\'en-tête', es: 'Configuración de encabezado' },
+  NAV_MENU_PLACEMENT: { en: 'Menu Placement', de: 'Menü-Platzierung', fr: 'Placement du menu', es: 'Posición del menú' },
+  NAV_RIGHT_OF_PAGE: { en: 'Right of Page', de: 'Rechts auf der Seite', fr: 'Droite de la page', es: 'Derecha de la página' },
+  NAV_NEAR_LOGO: { en: 'Near Logo', de: 'Neben dem Logo', fr: 'Près du logo', es: 'Cerca del logo' },
+  NAV_NEXT_LINE: { en: 'Next Line', de: 'Nächste Zeile', fr: 'Ligne suivante', es: 'Línea siguiente' },
+  NAV_ROW_ALIGNMENT: { en: 'Row Alignment', de: 'Zeilen-Ausrichtung', fr: 'Alignement de la ligne', es: 'Alineación de fila' },
+  NAV_PAGE_WIDTH: { en: 'Page Width', de: 'Seitenbreite', fr: 'Largeur de la page', es: 'Ancho de página' },
+  NAV_FULL_WIDTH: { en: 'Full Width', de: 'Volle Breite', fr: 'Pleine largeur', es: 'Ancho completo' },
+  NAV_STANDARD_BOXED: { en: 'Standard (Boxed)', de: 'Standard (Gerahmt)', fr: 'Standard (encadré)', es: 'Estándar (enmarcado)' },
+  NAV_BG_COLOR: { en: 'Background Color', de: 'Hintergrundfarbe', fr: 'Couleur de fond', es: 'Color de fondo' },
+  NAV_LOGO_SETTINGS: { en: 'Logo Settings', de: 'Logo-Einstellungen', fr: 'Paramètres du logo', es: 'Configuración del logo' },
+  NAV_LOGO_POSITION: { en: 'Position', de: 'Position', fr: 'Position', es: 'Posición' },
+  BTN_ADD_NAV_ITEM: { en: 'Add Navigation Item', de: 'Navigationselement hinzufügen', fr: 'Ajouter un élément de navigation', es: 'Agregar elemento de navegación' },
+  BTN_VISUAL_VIEW: { en: 'Visual View', de: 'Visuelle Ansicht', fr: 'Vue visuelle', es: 'Vista visual' },
+  BTN_LIST_VIEW: { en: 'List View', de: 'Listenansicht', fr: 'Vue liste', es: 'Vue liste' },
+  LABEL_URL_PAGE: { en: 'URL / Page', de: 'URL / Seite', fr: 'URL / Page', es: 'URL / Página' },
+  TH_ACTIONS: { en: 'Actions', de: 'Aktionen', fr: 'Actions', es: 'Acciones' },
+  BTN_ADD_NEW: { en: 'Add New', de: 'Neu hinzufügen', fr: 'Ajouter nouveau', es: 'Agregar nuevo' },
+  BTN_ADD_LEVEL: { en: 'Add Level', de: 'Ebene hinzufügen', fr: 'Ajouter un niveau', es: 'Agregar nivel' },
+  HELP_SLIDE_QUEUE: {
+    en: 'Drag with the handle to reorder, or use the arrows for fine-tuning. Duplicate a slide with the copy icon, or edit its content and design.',
+    de: 'Ziehen Sie am Griff, um die Reihenfolge zu ändern, oder verwenden Sie die Pfeile zur Feinabstimmung. Duplizieren Sie eine Folie mit dem Kopier-Symbol oder bearbeiten Sie deren Inhalt und Design.',
+    fr: 'Faites glisser la poignée pour réorganiser ou utilisez les flèches pour affiner. Dupliquez une diapositive avec l\'icône de copie, ou modifiez son contenu et sa conception.',
+    es: 'Arrastre con el controlador para reordenar o use las flechas para ajustar. Duplique una diapositiva con el icono de copiar o edite su contenido y diseño.'
+  },
 };
 
 export const DEFAULT_THEME: ThemeConfig = {
-  // Brand Colors (Corporate Blue #2f5596)
-  '--primary-color': '#2f5596',
-  '--secondary-color': '#1f3f73',
-  '--brand-light': '#e6ecf7',
-  '--brand-dark': '#1c355f',
-  '--gradient-primary': 'linear-gradient(135deg, #2f5596 0%, #1f3f73 100%)',
+  // // Brand Colors (Corporate Blue #2f5596)
+  // '--primary-color': '#2f5596',
+  // '--secondary-color': '#1f3f73',
+  // '--brand-light': '#e6ecf7',
+  // '--brand-dark': '#1c355f',
+  // '--gradient-primary': 'linear-gradient(135deg, #2f5596 0%, #1f3f73 100%)',
 
-  // Sidebar Specific
-  '--sidebar-bg': '#ffffff',
-  '--sidebar-text': '#1f2937',
-  '--sidebar-text-muted': '#6b7280',
-  '--sidebar-border-color': '#e5e7eb',
+  // // Sidebar Specific
+  // '--sidebar-bg': '#ffffff',
+  // '--sidebar-text': '#1f2937',
+  // '--sidebar-text-muted': '#6b7280',
+  // '--sidebar-border-color': '#e5e7eb',
 
-  '--sidebar-icon-color': '#2f5596',
-  '--sidebar-link-color': '#2f5596',
-  '--sidebar-link-hover-color': '#1f3f73',
-  '--sidebar-active-text-color': '#2f5596',
-  '--sidebar-active-indicator-color': '#2f5596',
-  '--sidebar-button-color': '#2f5596',
-  '--sidebar-active-bg': '#eff6ff',
-  '--sidebar-hover-bg': '#f9fafb',
+  // '--sidebar-icon-color': '#2f5596',
+  // '--sidebar-link-color': '#2f5596',
+  // '--sidebar-link-hover-color': '#1f3f73',
+  // '--sidebar-active-text-color': '#2f5596',
+  // '--sidebar-active-indicator-color': '#2f5596',
+  // '--sidebar-button-color': '#2f5596',
+  // '--sidebar-active-bg': '#eff6ff',
+  // '--sidebar-hover-bg': '#f9fafb',
 
-  // Text & Links
-  '--text-primary': '#1f2937',
-  '--text-secondary': '#4b5563',
-  '--text-on-primary': '#ffffff',
-  '--link-color': '#2f5596',
-  '--link-hover-color': '#1f3f73',
+  // // Text & Links
+  // '--text-primary': '#1f2937',
+  // '--text-secondary': '#4b5563',
+  // '--text-on-primary': '#ffffff',
+  // '--link-color': '#2f5596',
+  // '--link-hover-color': '#1f3f73',
 
-  // Backgrounds
-  '--bg-body': '#f8fafc',
-  '--bg-surface': '#ffffff',
-  '--bg-hover': '#eef2ff',
+  // // Backgrounds
+  // '--bg-body': '#f8fafc',
+  // '--bg-surface': '#ffffff',
+  // '--bg-hover': '#eef2ff',
 
-  // Buttons
-  '--btn-primary-bg': '#2f5596',
-  '--btn-primary-text': '#ffffff',
-  '--btn-primary-hover-bg': '#1f3f73',
-  '--btn-secondary-bg': '#ffffff',
-  '--btn-secondary-text': '#1f2937',
-  '--btn-padding-y': '0.5rem',
-  '--btn-padding-x': '1.25rem',
-  '--btn-font-size': '14px',
+  // // Buttons
+  // '--btn-primary-bg': '#2f5596',
+  // '--btn-primary-text': '#ffffff',
+  // '--btn-primary-hover-bg': '#1f3f73',
+  // '--btn-secondary-bg': '#ffffff',
+  // '--btn-secondary-text': '#1f2937',
+  // '--btn-padding-y': '0.5rem',
+  // '--btn-padding-x': '1.25rem',
+  // '--btn-font-size': '14px',
 
-  // Status
-  '--status-success': '#16a34a',
-  '--status-warning': '#f59e0b',
-  '--status-error': '#dc2626',
+  // // Status
+  // '--status-success': '#16a34a',
+  // '--status-warning': '#f59e0b',
+  // '--status-error': '#dc2626',
 
-  // Borders
-  '--border-radius-sm': '0px',
-  '--border-radius-md': '0px',
-  '--border-radius-lg': '0px',
-  '--border-color': '#d1d5db',
+  // // Borders
+  // '--border-radius-sm': '0px',
+  // '--border-radius-md': '0px',
+  // '--border-radius-lg': '0px',
+  // '--border-color': '#d1d5db',
 
-  // Typography
-  '--font-import-url': '',
-  '--font-family-base': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-  '--font-family-secondary': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+  // // Typography
+  // '--font-import-url': '',
+  // '--font-family-base': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+  // '--font-family-secondary': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
 
-  '--heading-color': '#1f2937',
-  '--heading-h1-color': 'var(--heading-color)',
-  '--heading-h2-color': 'var(--heading-color)',
-  '--heading-h3-color': 'var(--heading-color)',
-  '--heading-h4-color': 'var(--heading-color)',
-  '--heading-h5-color': 'var(--heading-color)',
-  '--heading-h6-color': 'var(--heading-color)',
+  // '--heading-color': '#1f2937',
+  // '--heading-h1-color': 'var(--heading-color)',
+  // '--heading-h2-color': 'var(--heading-color)',
+  // '--heading-h3-color': 'var(--heading-color)',
+  // '--heading-h4-color': 'var(--heading-color)',
+  // '--heading-h5-color': 'var(--heading-color)',
+  // '--heading-h6-color': 'var(--heading-color)',
 
-  '--font-size-base': '14px',
-  '--font-size-h1': '42px',
-  '--font-size-h2': '32px',
-  '--font-size-h3': '24px',
-  '--font-size-h4': '20px',
-  '--font-size-h5': '16px',
-  '--font-size-h6': '14px',
-  '--font-weight-bold': '600',
+  // '--font-size-base': '14px',
+  // '--font-size-h1': '42px',
+  // '--font-size-h2': '32px',
+  // '--font-size-h3': '24px',
+  // '--font-size-h4': '20px',
+  // '--font-size-h5': '16px',
+  // '--font-size-h6': '14px',
+  // '--font-weight-bold': '600',
+
+  // // Icon Styling
+  // '--icon-color': '#2f5596',
+  // '--edit-icon-bg': '#2563eb',
+  // '--edit-icon-color': '#ffffff',
+  // '--edit-icon-hover-bg': '#1d4ed8',
 };
 
-export const GLOBAL_DEFAULT_IMAGE = 'https://hochhuth-consulting.de//images/logo.png';
+export const GLOBAL_DEFAULT_IMAGE = '';
+
+const unescapeHtml = (str: string): string => {
+  if (!str) return '';
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&');
+};
 
 // Helper: Generate Default Containers - PAGE-WISE ISOLATION
 const createDefaultContainers = (pageId: string): Container[] => {
@@ -524,16 +643,17 @@ const createDefaultContainers = (pageId: string): Container[] => {
   return [];
 };
 
-const MOCK_NAV: NavItem[] = [
-  { id: '1', parentId: 'root', title: 'HOME', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
-  { id: '2', parentId: 'root', title: 'WHAT WE OFFER', type: 'Page', pageId: '2', isVisible: true, openInNewTab: false, order: 1 },
-  { id: '3', parentId: 'root', title: 'HOW WE WORK', type: 'Page', pageId: '3', isVisible: true, openInNewTab: false, order: 2 },
-  { id: '3_1', parentId: '3', title: 'Our Process', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
-  { id: '4', parentId: 'root', title: 'WHO WE ARE', type: 'Page', pageId: '4', isVisible: true, openInNewTab: false, order: 3 },
-  { id: '5', parentId: 'root', title: 'CAREERS', type: 'Page', pageId: '5', isVisible: true, openInNewTab: false, order: 4 },
-  { id: '6', parentId: 'root', title: 'CONTACT', type: 'Page', pageId: '6', isVisible: true, openInNewTab: false, order: 5 },
-];
+// const MOCK_NAV: NavItem[] = [
+//   { id: '1', parentId: 'root', title: 'HOME', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
+//   { id: '2', parentId: 'root', title: 'WHAT WE OFFER', type: 'Page', pageId: '2', isVisible: true, openInNewTab: false, order: 1 },
+//   { id: '3', parentId: 'root', title: 'HOW WE WORK', type: 'Page', pageId: '3', isVisible: true, openInNewTab: false, order: 2 },
+//   { id: '3_1', parentId: '3', title: 'Our Process', type: 'Page', pageId: '1', isVisible: true, openInNewTab: false, order: 0 },
+//   { id: '4', parentId: 'root', title: 'WHO WE ARE', type: 'Page', pageId: '4', isVisible: true, openInNewTab: false, order: 3 },
+//   { id: '5', parentId: 'root', title: 'CAREERS', type: 'Page', pageId: '5', isVisible: true, openInNewTab: false, order: 4 },
+//   { id: '6', parentId: 'root', title: 'CONTACT', type: 'Page', pageId: '6', isVisible: true, openInNewTab: false, order: 5 },
+// ];
 
+/*
 const MOCK_PAGES: Page[] = [
   {
     id: '1',
@@ -574,8 +694,10 @@ const MOCK_PAGES: Page[] = [
   { id: '5', title: { en: 'Careers', de: 'Karriere', fr: 'Carrières', es: 'Carreras' }, slug: '/careers', status: 'Published', createdBy: 'System', modifiedBy: 'Admin', modifiedDate: new Date().toISOString(), containers: createDefaultContainers('5') },
   { id: '6', title: { en: 'Contact', de: 'Kontakt', fr: 'Contact', es: 'Contacto' }, slug: '/contact', status: 'Published', createdBy: 'System', modifiedBy: 'Admin', modifiedDate: new Date().toISOString(), containers: createDefaultContainers('6') }
 ];
+*/
 
 // --- CENTRALIZED MOCK DATA ---
+/*
 const MOCK_NEWS: NewsItem[] = [
   { id: '1', title: 'New Office Opening in Berlin', status: 'Published', publishDate: '2025-01-10', description: 'We are thrilled to announce the opening of our new regional headquarters.', readMore: { enabled: true, text: 'Read more', url: '#' }, translations: { de: { title: 'Neues Büro', description: 'Wir freuen uns...' }, fr: { title: 'Nouveau bureau', description: 'Nous sommes ravis...' } } },
   { id: 'mock_1', title: 'Global Expansion Strategy 2025', status: 'Published', publishDate: '2025-03-10', description: 'Our comprehensive plan to enter new markets in Asia and South America is now officially underway.', imageUrl: 'https://images.unsplash.com/photo-1526304640152-d4619684e484?auto=format&fit=crop&w=300&q=80', readMore: { enabled: true } },
@@ -614,7 +736,9 @@ const MOCK_DOCUMENTS: DocumentItem[] = [
   { id: 'm8', title: 'Brand Guidelines', status: 'Published', date: '2022-02-14', type: 'PDF', year: '2022', description: 'Corporate identity guide.', itemRank: 5 },
   { id: 'm9', title: 'Legacy Systems Manual', status: 'Published', date: '2020-08-30', type: 'Word', year: '2020', description: 'Old system documentation.', itemRank: 5 }
 ];
+*/
 
+/*
 const MOCK_FOLDERS: ImageFolder[] = [
   { id: 'all', name: 'All Images', count: 8 },
   { id: 'container', name: 'Container-Images', count: 3 },
@@ -628,7 +752,9 @@ const MOCK_FOLDERS: ImageFolder[] = [
   { id: 'flags', name: 'Flags', count: 1 },
   { id: 'slider', name: 'SliderImages', count: 0 },
 ];
+*/
 
+/*
 const MOCK_IMAGES: ImageItem[] = [
   { id: 'i1', name: 'Text Edit(10).png', url: '', folderId: 'container', title: 'Text Edit Image', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
   { id: 'i2', name: 'benefit-img2.jpg', url: '', folderId: 'container', title: 'Benefit Image 2', createdDate: '2025-03-18', createdBy: 'Sameer Gupta' },
@@ -639,12 +765,16 @@ const MOCK_IMAGES: ImageItem[] = [
   { id: 'i7', name: 'Team_Meeting.jpg', url: '', folderId: 'team', title: 'Team Meeting', createdDate: '2025-03-15', createdBy: 'Admin' },
   { id: 'i8', name: 'Flag_US.png', url: '', folderId: 'flags', title: 'US Flag', createdDate: '2025-01-10', createdBy: 'System' },
 ];
+*/
 
+/*
 const MOCK_TRANSLATION_ITEMS: TranslationItem[] = [
   { id: '#5', sourceList: 'TopNavigation', original: 'Home', translations: { de: 'Startseite', fr: 'Accueil' }, lastUpdated: '31/12/2025' },
   { id: '#6', sourceList: 'TopNavigation', original: 'What we offer', translations: { de: 'Was wir bieten', fr: 'Ce que nous offrons' }, lastUpdated: '31/12/2025' },
 ];
+*/
 
+/*
 const MOCK_USERS: PermissionUser[] = [
   { id: 'u1', name: 'Abhishek Tiwari', email: 'abhishek.tiwari@webstudio.de' },
   { id: 'u2', name: 'Aditi Mishra', email: 'aditi.mishra@webstudio.de' },
@@ -653,7 +783,9 @@ const MOCK_USERS: PermissionUser[] = [
   { id: 'u5', name: 'Ankita Pandit', email: 'ankita.pandit@webstudio.de' },
   { id: 'u6', name: 'Shivdutt Mishra', email: 'shivdutt.mishra@webstudio.de' },
 ];
+*/
 
+/*
 const MOCK_CONTAINER_ITEMS: ContainerItem[] = [
   {
     id: 'ci1',
@@ -692,80 +824,20 @@ const MOCK_CONTAINER_ITEMS: ContainerItem[] = [
     }
   }
 ];
+*/
 
-const MOCK_CONTACTS: ContactItem[] = [
-  {
-    id: 'c1',
-    fullName: 'Shivdutt Mishra',
-    firstName: 'Shivdutt',
-    lastName: 'Mishra',
-    status: 'Published',
-    sortOrder: 1,
-    jobTitle: 'Creative Director',
-    company: 'Web Studio CMS',
-    email: 'shivdutt.mishra@webstudio.de',
-    phone: '+49 30 1234567',
-    description: 'Lead creative visionary with over 15 years of experience in digital design and architecture.',
-    imageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-  },
-  {
-    id: 'c2',
-    fullName: 'Aditi Mishra',
-    firstName: 'Aditi',
-    lastName: 'Mishra',
-    status: 'Published',
-    sortOrder: 2,
-    jobTitle: 'UI/UX Designer',
-    company: 'Web Studio CMS',
-    email: 'aditi.mishra@webstudio.de',
-    phone: '+49 30 7654321',
-    description: 'Expert in creating intuitive user experiences and beautiful interfaces for enterprise platforms.',
-    imageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-  },
-  {
-    id: 'c3',
-    fullName: 'Aman Munjal',
-    firstName: 'Aman',
-    lastName: 'Munjal',
-    status: 'Published',
-    sortOrder: 3,
-    jobTitle: 'Senior Developer',
-    company: 'Power Platforms',
-    email: 'aman.munjal@webstudio.de',
-    phone: '+49 30 9998887',
-    description: 'Full-stack developer specializing in SharePoint and Power Platform integrations.',
-    imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-  }
-];
-
-const MOCK_SLIDER_ITEMS: SliderItem[] = [
-  {
-    id: 's1',
-    title: 'Excellence in Enterprise Solutions',
-    subtitle: 'Driving Innovation Forward',
-    description: 'We help global enterprises transform their digital presence through cutting-edge CMS solutions.',
-    imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
-    status: 'Published',
-    sortOrder: 1,
-    ctaText: 'Get Started',
-    ctaUrl: '#'
-  },
-  {
-    id: 's2',
-    title: 'Future-Proof Your Business',
-    subtitle: 'Scalable & Secure',
-    description: 'Our platform provides the security and scalability needed for modern distributed organizations.',
-    imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-    status: 'Published',
-    sortOrder: 2,
-    ctaText: 'Learn More',
-    ctaUrl: '#'
-  }
+const MOCK_USERS: PermissionUser[] = [
+  { id: 'u1', name: 'Abhishek Tiwari', email: 'abhishek.tiwari@webstudio.de' },
+  { id: 'u2', name: 'Aditi Mishra', email: 'aditi.mishra@webstudio.de' },
+  { id: 'u3', name: 'Aman Munjal', email: 'aman.munjal@webstudio.de' },
+  { id: 'u4', name: 'Amit Kumar', email: 'amit.kumar@webstudio.de' },
+  { id: 'u5', name: 'Ankita Pandit', email: 'ankita.pandit@webstudio.de' },
+  { id: 'u6', name: 'Shivdutt Mishra', email: 'shivdutt.mishra@webstudio.de' },
 ];
 
 const MOCK_GROUPS: PermissionGroup[] = [
   { id: 'members', name: 'WebStudio Members', description: 'Control access for visitors and basic users. Ideal for granting read-only or limited permissions.', type: 'Members', memberIds: ['u1', 'u2', 'u3', 'u4', 'u5'] },
-  { id: 'visitors', name: 'WebStudio Visitors', description: 'Control access for visitors and basic users. Ideal for granting read-only or limited permissions.', type: 'Visitors', memberIds: [] },
+  { id: 'visitors', name: 'WebStudio Visitors', description: 'Control access for visitors and basic memory usage basic users. Ideal for granting read-only or limited permissions.', type: 'Visitors', memberIds: [] },
   { id: 'owners', name: 'WebStudio Owners', description: 'Manage high-level permissions for administrators and owners. Use with caution.', type: 'Owners', memberIds: ['u6'] },
 ];
 
@@ -800,6 +872,7 @@ interface AppState {
   uiLabels: Record<string, MultilingualText>;
   editingLabelKey: string | null;
   editingContainerId: string | null;
+  isLoading: boolean;
 
   toggleViewMode: () => void;
   openModal: (type: ModalType) => void;
@@ -854,7 +927,7 @@ interface AppState {
 
   // Contact Query Actions
   addContactQuery: (query: ContactQuery) => void;
-  deleteContactQuery: (ids: any) => void;
+  deleteContactQuery: (ids: string[]) => void;
 
   updateFooterConfig: (config: Partial<SiteConfig['footer']>) => void;
 
@@ -863,28 +936,37 @@ interface AppState {
 
   addPage: (page: Page) => void;
   updatePage: (page: Page) => void;
+  deletePage: (id: string) => void;
   addContainer: (pageId: string, container: Container) => void;
   updateContainer: (pageId: string, container: Container) => void;
-  deleteContainer: (pageId: string, cId: any) => void;
+  deleteContainer: (pageId: string, cId: string) => void;
   reorderContainers: (pageId: string, newOrder: Container[]) => void;
+  loadFromApi: () => Promise<void>;
+  translationSources: string[];
+  // Helper functions for managing taggedItems
+  removeItemFromContainers: (itemId: string) => Promise<void>;
+  validateContainerTaggedItems: () => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+
+      /* ================= STATE ================= */
+
       viewMode: ViewMode.PREVIEW,
       activeModal: ModalType.NONE,
       themeConfig: DEFAULT_THEME,
-      pages: MOCK_PAGES,
-      news: MOCK_NEWS,
-      events: MOCK_EVENTS,
-      documents: MOCK_DOCUMENTS,
-      containerItems: MOCK_CONTAINER_ITEMS,
-      contacts: MOCK_CONTACTS,
-      sliderItems: MOCK_SLIDER_ITEMS,
-      images: MOCK_IMAGES,
-      imageFolders: MOCK_FOLDERS,
-      translationItems: MOCK_TRANSLATION_ITEMS,
+      pages: [],
+      news: [],
+      events: [],
+      documents: [],
+      containerItems: [],
+      contacts: [],
+      sliderItems: [],
+      images: [],
+      imageFolders: [],
+      translationItems: [],
       permissionGroups: MOCK_GROUPS,
       permissionUsers: MOCK_USERS,
       contactQueries: [],
@@ -893,6 +975,22 @@ export const useStore = create<AppState>()(
       uiLabels: INITIAL_UI_LABELS,
       editingLabelKey: null,
       editingContainerId: null,
+      isLoading: false,
+      translationSources: [
+        'TopNavigation',
+        'SmartPages',
+        'News',
+        'Events',
+        'Documents',
+        'Containers',
+        'GlobalSettings',
+        'ContactQueries',
+        'TranslationDictionary',
+        'Images',
+        'ContainerItems',
+        'Contacts'
+      ],
+
       siteConfig: {
         name: 'My Enterprise Site',
         languages: ['en', 'de', 'fr', 'es'],
@@ -902,7 +1000,7 @@ export const useStore = create<AppState>()(
         headerWidth: 'full',
         headerBackgroundColor: '#ffffff',
         logo: { url: '', position: 'left', width: '150px' },
-        navigation: MOCK_NAV,
+        navigation: [],
         footer: {
           template: 'Table',
           backgroundColor: 'site-color',
@@ -919,6 +1017,589 @@ export const useStore = create<AppState>()(
           copyright: { en: '© 2026 Web Studio Corp', de: '© 2026 Unternehmen Corp', fr: '© 2026 Entreprise Corp', es: '© 2026 Empresa Corp' }
         }
       },
+
+      /* =========================================================
+         🚀 LOAD FROM NODE API
+      ========================================================== */
+
+      loadFromApi: async () => {
+        try {
+          set({ isLoading: true });
+          console.log("🔄 Loading data from Node API...");
+
+          const API = "http://localhost:3001/api";
+
+          const [
+            spPages,
+            spNav,
+            spNews,
+            spEvents,
+            spDocs,
+            spSettings,
+            spTranslations,
+            spContainerItems,
+            spContactQueries,
+            spContacts,
+            spSliderItems,
+            spContainers,
+            allImagesRaw
+          ] = await Promise.all([
+            fetch(`${API}/smartPages`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/topNavigation`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/news`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/events`).then((r: any) => r.json()).catch(() => []),
+            fetchAllItems("/api/publishing-documents", "documents").catch(() => []),
+            fetch(`${API}/globalSettings`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/translationDictionary`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/containerItems`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/contactQueries`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/contacts`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/imageSlider`).then((r: any) => r.json()).catch(() => []),
+            fetch(`${API}/containers`).then((r: any) => r.json()).catch(() => []),
+            fetchAllItems("/api/publishing-images", "images").catch(() => [])
+          ]);
+
+          /* ================= MEDIA BINDING ================= */
+
+          const { imageMap, documentMap } = buildMediaMaps(allImagesRaw, spDocs);
+
+          const resolveImage = (item: any): string => {
+            if (!item) return "";
+
+            // 1️⃣ Try ImageName from imageMap
+            const imageName = typeof item.ImageName === "string"
+              ? item.ImageName.toLowerCase().trim()
+              : "";
+
+            if (imageName && imageMap?.[imageName]?.url) {
+              return imageMap[imageName].url;
+            }
+
+            // 2️⃣ Handle different ImageUrl shapes safely
+            const imageUrl = item.ImageUrl;
+
+            if (!imageUrl) return "";
+
+            if (typeof imageUrl === "string") {
+              return imageUrl;
+            }
+
+            if (typeof imageUrl === "object") {
+              return (
+                imageUrl.Url ||
+                imageUrl.url ||
+                imageUrl?.value?.Url ||
+                imageUrl?.value?.url ||
+                ""
+              );
+            }
+
+            return "";
+          };
+
+          const resolveDocument = (item: any) => {
+            const key = (item.Name || item.FileLeafRef || "").toLowerCase();
+            return documentMap[key]?.url || item.FileRef || item.url || "";
+          };
+
+          const safeParse = (val: any, fallback: any = {}) => {
+            try { return val ? JSON.parse(val) : fallback; }
+            catch { return fallback; }
+          };
+
+          const normalizeId = (val: any) => String(val ?? "").trim();
+
+          const cleanTranslations = (obj: any) => {
+            const parsed = safeParse(obj, {});
+            Object.keys(parsed).forEach(lang => {
+              if (parsed[lang]?.description) {
+                parsed[lang].description = unescapeHtml(parsed[lang].description);
+              }
+            });
+            return parsed;
+          };
+
+          /* ================= GLOBAL SETTINGS ================= */
+
+          let loadedTheme = DEFAULT_THEME;
+          let loadedSiteConfig = get().siteConfig;
+          let loadedUiLabels = INITIAL_UI_LABELS;
+
+          if (spSettings.length > 0) {
+            const themeItem = spSettings.find((i: any) => i.Title === 'THEME_CONFIG');
+            if (themeItem?.ConfigData)
+              loadedTheme = { ...DEFAULT_THEME, ...safeParse(themeItem.ConfigData) };
+
+            const siteItem = spSettings.find((i: any) => i.Title === 'SITE_CONFIG');
+            if (siteItem?.ConfigData)
+              loadedSiteConfig = { ...loadedSiteConfig, ...safeParse(siteItem.ConfigData) };
+
+            const labelsItem = spSettings.find((i: any) => i.Title === 'UI_LABELS');
+            if (labelsItem?.ConfigData)
+              loadedUiLabels = { ...loadedUiLabels, ...safeParse(labelsItem.ConfigData) };
+
+            const appItem = spSettings.find((i: any) => i.Title === 'APP_STATE');
+            if (appItem?.ConfigData) {
+              const parsedApp = safeParse(appItem.ConfigData);
+              if (parsedApp.currentPageId) set({ currentPageId: parsedApp.currentPageId });
+              if (parsedApp.currentLanguage) set({ currentLanguage: parsedApp.currentLanguage });
+              if (parsedApp.editingContainerId) set({ editingContainerId: parsedApp.editingContainerId });
+            }
+
+            const sourcesItem = spSettings.find((i: any) => i.Title === 'TRANSLATION_SOURCES');
+            if (sourcesItem?.ConfigData) {
+              const parsedSources = safeParse(sourcesItem.ConfigData, []);
+              if (Array.isArray(parsedSources)) set({ translationSources: parsedSources });
+            }
+          }
+
+          /* ================= TRANSLATIONS ================= */
+
+          if (spTranslations?.length > 0) {
+            spTranslations.forEach((t: any) => {
+              if (t.Title) {
+                loadedUiLabels[t.Title] = {
+                  en: t.EN || loadedUiLabels[t.Title]?.en || '',
+                  de: t.DE || loadedUiLabels[t.Title]?.de || '',
+                  fr: t.FR || loadedUiLabels[t.Title]?.fr || '',
+                  es: t.ES || loadedUiLabels[t.Title]?.es || ''
+                };
+              }
+            });
+          }
+
+          const loadedTranslationItems =
+            spTranslations?.length > 0
+              ? spTranslations.map((t: any) => ({
+                id: t.Title,
+                sourceList: t.SourceList || 'General',
+                original: t.Title,
+                translations: {
+                  en: t.EN || '',
+                  de: t.DE || '',
+                  fr: t.FR || '',
+                  es: t.ES || ''
+                },
+                lastUpdated: new Date().toISOString()
+              }))
+              : Object.keys(loadedUiLabels).map(key => ({
+                id: key,
+                sourceList: 'TranslationDictionary',
+                original: key,
+                translations: loadedUiLabels[key],
+                lastUpdated: new Date().toISOString()
+              }));
+
+          /* ================= CONTAINERS ================= */
+
+          const transformedContainers = spContainers.map((c: any) => {
+            const extractImageName = (url: string): string => {
+              if (!url || typeof url !== "string") return "";
+
+              try {
+                const decoded = decodeURIComponent(url);
+                const parts = decoded.split("/");
+                return parts[parts.length - 1].toLowerCase().trim();
+              } catch {
+                return "";
+              }
+            };
+            const parsedSettings = safeParse(c.Settings, {});
+
+            if (parsedSettings?.bgImage) {
+              const imageName = extractImageName(parsedSettings.bgImage);
+
+              const resolvedUrl = resolveImage({
+                ImageName: imageName
+              });
+
+              if (resolvedUrl) {
+                parsedSettings.bgImage = resolvedUrl;
+              }
+            }
+            if (c.BtnEnabled !== undefined && c.BtnEnabled !== null) parsedSettings.btnEnabled = c.BtnEnabled;
+            if (c.BtnName) parsedSettings.btnName = c.BtnName;
+            if (c.BtnUrl) parsedSettings.btnUrl = c.BtnUrl;
+
+            const parsedContent = safeParse(c.ContainerContent, {});
+            if (parsedContent.translations) {
+              Object.keys(parsedContent.translations).forEach(lang => {
+                if (parsedContent.translations[lang]?.description) {
+                  parsedContent.translations[lang].description = unescapeHtml(parsedContent.translations[lang].description);
+                }
+              });
+            }
+
+            return {
+              id: normalizeId(c.id),
+              pageId: c.PageLookupId,
+              type: c.ContainerType,
+              order: c.SortOrder || 0,
+              isVisible: c.IsVisible !== false,
+              settings: parsedSettings,
+              content: parsedContent,
+              title: c.Title || ''
+            };
+          });
+
+          const containerMap: Record<string, any[]> = {};
+          transformedContainers.forEach((c: any) => {
+            const pid = normalizeId(c.pageId);
+            if (!containerMap[pid]) containerMap[pid] = [];
+            containerMap[pid].push(c);
+          });
+
+          /* ================= PAGES ================= */
+
+          const transformedPages = spPages.map((p: any) => ({
+            id: p.id,
+            title: p.MultilingualTitle ? safeParse(p.MultilingualTitle) : { en: p.Title },
+            slug: p.Slug || '/',
+            status: p.PageStatus || 'Draft',
+            createdBy: p.Author?.Title || 'System',
+            modifiedBy: p.Editor?.Title || 'System',
+            modifiedDate: p.Modified || new Date().toISOString(),
+            description: unescapeHtml(p.Description || ''),
+            isHomePage: p.IsHomePage || false,
+            seo: p.SEOConfig ? safeParse(p.SEOConfig) : undefined,
+            containers: containerMap[normalizeId(p.id)] || []
+          }));
+
+          /* ================= NAVIGATION ================= */
+
+          const transformedNav = spNav.map((item: any) => ({
+            id: normalizeId(item.id),
+            parentId: item.ParentLookupId ? normalizeId(item.ParentLookupId) : 'root',
+            title: item.Title,
+            type: item.NavType || 'Page',
+            pageId: item.SmartPageLookupId ? normalizeId(item.SmartPageLookupId) : undefined,
+            url: item.ExternalURL,
+            isVisible: item.IsVisible !== false,
+            openInNewTab: item.OpenInNewTab || false,
+            order: item.SortOrder || 0,
+            translations: safeParse(item.Translations, {}),
+            modified: item.Modified
+          }));
+
+          /* ================= NEWS ================= */
+
+          const transformedNews = spNews.map((item: any) => ({
+            id: normalizeId(item.id),
+            title: item.Title,
+            status: item.Status || 'Draft',
+            publishDate: item.PublishDate || new Date().toISOString(),
+            description: unescapeHtml(item.Description || ''),
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            readMore: {
+              enabled: item.ReadMoreEnabled || false,
+              text: item.ReadMoreText || '',
+              url: item.ReadMoreURL || ''
+            },
+            seo: item.SEOConfig ? safeParse(item.SEOConfig) : { title: '', description: '', keywords: '' },
+            translations: cleanTranslations(item.Translations),
+            createdBy: item.Author?.Title || 'System',
+            modifiedBy: item.Editor?.Title || 'System',
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created
+          }));
+
+          /* ================= EVENTS ================= */
+
+          const transformedEvents = spEvents.map((item: any) => ({
+            id: normalizeId(item.id),
+            title: item.Title,
+            status: item.Status || 'Draft',
+            startDate: item.StartDate || new Date().toISOString(),
+            endDate: item.EndDate || '',
+            location: item.Location || '',
+            category: item.Category || 'General',
+            description: unescapeHtml(item.Description || ''),
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            readMore: {
+              enabled: item.ReadMoreEnabled || false,
+              text: item.ReadMoreText || '',
+              url: item.ReadMoreURL || ''
+            },
+            seo: item.SEOConfig ? safeParse(item.SEOConfig) : { title: '', description: '', keywords: '' },
+            translations: cleanTranslations(item.Translations),
+            createdBy: item.Author?.Title || 'System',
+            modifiedBy: item.Editor?.Title || 'System',
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created
+          }));
+
+          /* ================= DOCUMENTS ================= */
+
+          const transformedDocs = spDocs.map((item: any) => ({
+            id: normalizeId(item.id),
+            title: item.Title,
+            name: item.Name,
+            status: item.DocStatus || 'Draft',
+            date: item.Modified || new Date().toISOString(),
+            type: item.DocType || 'PDF',
+            year: item.DocumentYear || new Date().getFullYear().toString(),
+            description: unescapeHtml(item.DocumentDescriptions || ''),
+            itemRank: item.ItemRank || 5,
+            sortOrder: item.SortOrder || 0,
+            url: resolveDocument(item) || item.FileRef || '',
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            translations: cleanTranslations(item.Translations),
+            createdBy: item.AuthorName || item.Author?.Title || 'System',
+            modifiedBy: item.EditorName || item.Editor?.Title || 'System',
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created
+          }));
+
+          /* ================= IMAGES ================= */
+
+          const transformedImages = allImagesRaw.map((img: any) => ({
+            id: normalizeId(img.id),
+            name: img.FileName,
+            url: img.Url,
+            folderId: img.AssetCategory || 'all',
+            title: img.Title || img.FileName,
+            description: img.Description || '',
+            copyright: img.CopyrightInfo || '',
+            createdDate: img.Created,
+            createdBy: img.AuthorName || 'Unknown'
+          }));
+
+          const imageFolders = [
+            { id: 'all', name: 'All Images', count: transformedImages.length }
+          ];
+
+          /* ================= CONTAINER ITEMS ================= */
+
+          const transformedContainerItems = spContainerItems.map((item: any) => ({
+            id: normalizeId(item.id),
+            title: item.Title,
+            status: item.Status || 'Draft',
+            sortOrder: item.SortOrder || 0,
+            description: unescapeHtml(item.Description || ''),
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            translations: cleanTranslations(item.Translations),
+            createdBy: item.Author?.Title || 'System',
+            modifiedBy: item.Editor?.Title || 'System',
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created
+          }));
+
+          /* ================= CONTACTS ================= */
+
+          const transformedContacts = spContacts.map((item: any) => ({
+            id: normalizeId(item.id),
+            fullName: item.Title || '',
+            firstName: item.FirstName || '',
+            lastName: item.LastName || '',
+            status: item.Status || 'Draft',
+            sortOrder: item.SortOrder || 0,
+            jobTitle: item.JobTitle || '',
+            company: item.Company || '',
+            email: item.Email || '',
+            phone: item.Phone || '',
+            description: unescapeHtml(item.Description || ''),
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            translations: cleanTranslations(item.Translations),
+            createdBy: item.Author?.Title || 'System',
+            modifiedBy: item.Editor?.Title || 'System',
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created
+          }));
+
+          /* ================= CONTACT QUERIES ================= */
+
+          const transformedContactQueries = spContactQueries.map((item: any) => {
+            const formData = safeParse(item.FormData, {});
+            return {
+              id: normalizeId(item.id),
+              pageId: item.SourcePageLookupId,
+              pageName: item.SourcePage?.Title || formData.pageName || 'Unknown Page',
+              containerId: formData.containerId || '',
+              created: item.Created || formData.created || new Date().toISOString(),
+              status: item.QueryStatus || 'New',
+              email: formData.email || item.Title || 'Anonymous',
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              smartPage: formData.pageName,
+              fields: formData.fields || []
+            };
+          });
+
+          /* ================= SLIDER ITEMS ================= */
+
+          const transformedSliderItems = spSliderItems.map((item: any) => ({
+            id: normalizeId(item.id),
+            title: item.Title || '',
+            subtitle: item.Subtitle || '',
+            description: item.Description || '',
+            status: item.Status || 'Draft',
+            sortOrder: item.SortOrder || 0,
+            ctaText: item.CtaText || '',
+            ctaUrl: item.CtaUrl || '',
+            imageUrl: resolveImage(item) || '',
+            imageName: item.ImageName || '',
+            translations: cleanTranslations(item.Translations),
+            createdDate: item.Created,
+            modifiedDate: item.Modified || item.Created,
+            createdBy: item.Author?.Title || 'System',
+            modifiedBy: item.Editor?.Title || item.Author?.Title || 'System'
+          }));
+
+          /* ================= DEFAULT NAVIGATION ================= */
+
+          let defaultPageId = '';
+          const homeNavItem = transformedNav.find((n: any) => n.title?.toUpperCase() === 'HOME' && n.pageId);
+
+          if (homeNavItem?.pageId) {
+            defaultPageId = homeNavItem.pageId;
+          } else {
+            const rootItems = transformedNav.filter((n: any) => n.parentId === 'root').sort((a: any, b: any) => a.order - b.order);
+            const firstRootPage = rootItems.find((n: any) => n.type === 'Page' && n.pageId);
+
+            if (firstRootPage?.pageId) {
+              defaultPageId = firstRootPage.pageId;
+            } else {
+              const sortedNav = [...transformedNav].sort((a: any, b: any) => a.order - b.order);
+              const firstPageNav = sortedNav.find((n: any) => n.type === 'Page' && n.pageId);
+              if (firstPageNav?.pageId) {
+                defaultPageId = firstPageNav.pageId;
+              } else if (transformedPages.length > 0) {
+                defaultPageId = transformedPages[0].id;
+              }
+            }
+          }
+
+          const defaultPageExists = transformedPages.find((p: any) => p.id === defaultPageId);
+          if (defaultPageExists && (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#')) {
+            window.location.hash = defaultPageExists.slug;
+          }
+
+          /* ================= FINAL STORE UPDATE ================= */
+
+          set({
+            pages: transformedPages,
+            news: transformedNews,
+            events: transformedEvents,
+            documents: transformedDocs,
+            containerItems: transformedContainerItems,
+            contacts: transformedContacts,
+            sliderItems: transformedSliderItems,
+            contactQueries: transformedContactQueries,
+            images: transformedImages,
+            imageFolders: imageFolders,
+            siteConfig: {
+              ...loadedSiteConfig,
+              navigation: transformedNav
+            },
+            themeConfig: loadedTheme,
+            uiLabels: loadedUiLabels,
+            translationItems: loadedTranslationItems,
+            currentPageId: defaultPageId || '1',
+            isLoading: false
+          });
+
+          await get().validateContainerTaggedItems();
+
+          console.log("✅ Node API fully matched with SharePoint mapping + media binding");
+
+        } catch (error) {
+          console.error("❌ Error loading Node API data:", error);
+          set({ isLoading: false });
+        }
+      },
+
+      removeItemFromContainers: async (itemId: string) => {
+        try {
+          const state = get();
+          let hasChanges = false;
+
+          const updatedPages = state.pages.map(page => {
+            const updatedContainers = page.containers.map(container => {
+              const taggedItems = container.settings?.taggedItems;
+              if (taggedItems && Array.isArray(taggedItems) && taggedItems.includes(itemId)) {
+                hasChanges = true;
+                const newTaggedItems = taggedItems.filter((id: string) => id !== itemId);
+                console.log(`🧹 Removing item ${itemId} from container ${container.id} in page ${page.id}`);
+                return {
+                  ...container,
+                  settings: {
+                    ...container.settings,
+                    taggedItems: newTaggedItems
+                  }
+                };
+              }
+              return container;
+            });
+
+            if (updatedContainers.some((c, i) => c !== page.containers[i])) {
+              return { ...page, containers: updatedContainers };
+            }
+            return page;
+          });
+
+          if (hasChanges) {
+            set({ pages: updatedPages });
+          }
+        } catch (error) {
+          console.error('Error removing item from containers:', error);
+        }
+      },
+
+      validateContainerTaggedItems: async () => {
+        try {
+          const state = get();
+          const allItemIds = new Set([
+            ...state.news.map(n => n.id),
+            ...state.events.map(e => e.id),
+            ...state.documents.map(d => d.id),
+            ...state.containerItems.map(ci => ci.id),
+            ...state.contacts.map(c => c.id),
+            ...state.sliderItems.map(s => s.id),
+            ...state.pages.map(p => p.id)
+          ]);
+
+          let hasGlobalChanges = false;
+
+          const updatedPages = state.pages.map(page => {
+            let pageHasChanges = false;
+            const updatedContainers = page.containers.map(container => {
+              const taggedItems = container.settings?.taggedItems;
+              if (taggedItems && Array.isArray(taggedItems)) {
+                const validItems = taggedItems.filter((id: any) => allItemIds.has(String(id)));
+
+                if (validItems.length !== taggedItems.length) {
+                  console.warn(`🧼 Cleaning up ${taggedItems.length - validItems.length} invalid taggedItems in container ${container.id}`);
+                  pageHasChanges = true;
+                  hasGlobalChanges = true;
+                  return {
+                    ...container,
+                    settings: {
+                      ...container.settings,
+                      taggedItems: validItems
+                    }
+                  };
+                }
+              }
+              return container;
+            });
+
+            return pageHasChanges ? { ...page, containers: updatedContainers } : page;
+          });
+
+          if (hasGlobalChanges) {
+            set({ pages: updatedPages });
+          }
+        } catch (error) {
+          console.error('Error validating container items:', error);
+        }
+      },
+
+      /* ================= EXISTING ACTIONS (UNCHANGED) ================= */
 
       toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === ViewMode.PREVIEW ? ViewMode.EDIT : ViewMode.PREVIEW })),
       openModal: (type) => set({ activeModal: type }),
@@ -940,15 +1621,24 @@ export const useStore = create<AppState>()(
 
       addNews: (item) => set((state) => ({ news: [...state.news, item] })),
       updateNews: (item) => set((state) => ({ news: state.news.map(n => n.id === item.id ? item : n) })),
-      deleteNews: (id) => set((state) => ({ news: state.news.filter(n => n.id !== id) })),
+      deleteNews: async (id) => {
+        set((state) => ({ news: state.news.filter(n => n.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       addEvent: (item) => set((state) => ({ events: [...state.events, item] })),
       updateEvent: (item) => set((state) => ({ events: state.events.map(n => n.id === item.id ? item : n) })),
-      deleteEvent: (id) => set((state) => ({ events: state.events.filter(n => n.id !== id) })),
+      deleteEvent: async (id) => {
+        set((state) => ({ events: state.events.filter(n => n.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       addDocument: (item) => set((state) => ({ documents: [...state.documents, item] })),
       updateDocument: (item) => set((state) => ({ documents: state.documents.map(n => n.id === item.id ? item : n) })),
-      deleteDocument: (id) => set((state) => ({ documents: state.documents.filter(n => n.id !== id) })),
+      deleteDocument: async (id) => {
+        set((state) => ({ documents: state.documents.filter(n => n.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       addImage: (item) => set((state) => {
         const newImages = [...state.images, item];
@@ -964,22 +1654,33 @@ export const useStore = create<AppState>()(
           imageFolders: recalculateFolderCounts(state.imageFolders, newImages)
         };
       }),
-      deleteImage: (id) => set((state) => {
+      deleteImage: async (id) => {
+        const state = get();
         const newImages = state.images.filter(i => i.id !== id);
-        return {
+        set({
           images: newImages,
           imageFolders: recalculateFolderCounts(state.imageFolders, newImages)
-        };
-      }),
+        });
+        await get().removeItemFromContainers(id);
+      },
 
       updateContainerItem: (item) => set((state) => ({ containerItems: state.containerItems.map(i => i.id === item.id ? item : i) })),
-      deleteContainerItem: (id) => set((state) => ({ containerItems: state.containerItems.filter(i => i.id !== id) })),
+      deleteContainerItem: async (id) => {
+        set((state) => ({ containerItems: state.containerItems.filter(i => i.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       updateContact: (item) => set((state) => ({ contacts: state.contacts.map(i => i.id === item.id ? item : i) })),
-      deleteContact: (id) => set((state) => ({ contacts: state.contacts.filter(i => i.id !== id) })),
+      deleteContact: async (id) => {
+        set((state) => ({ contacts: state.contacts.filter(i => i.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       updateSliderItem: (item) => set((state) => ({ sliderItems: state.sliderItems.map(i => i.id === item.id ? item : i) })),
-      deleteSliderItem: (id) => set((state) => ({ sliderItems: state.sliderItems.filter(i => i.id !== id) })),
+      deleteSliderItem: async (id) => {
+        set((state) => ({ sliderItems: state.sliderItems.filter(i => i.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
 
       updateTranslationItem: (id, sourceList, original, lang, value) => set((state) => {
         const existingIndex = state.translationItems.findIndex(item => item.id === id);
@@ -1024,6 +1725,10 @@ export const useStore = create<AppState>()(
 
       addPage: (page) => set((state) => ({ pages: [...state.pages, { ...page, containers: page.containers && page.containers.length > 0 ? page.containers : createDefaultContainers(page.id) }] })),
       updatePage: (page) => set((state) => ({ pages: state.pages.map(p => p.id === page.id ? page : p) })),
+      deletePage: async (id) => {
+        set((state) => ({ pages: state.pages.filter(p => p.id !== id) }));
+        await get().removeItemFromContainers(id);
+      },
       addContainer: (pageId, container) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: [...p.containers, { ...container, pageId }] } : p) })),
       updateContainer: (pageId, container) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: p.containers.map(c => c.id === container.id ? container : c) } : p) })),
       deleteContainer: (pageId, cId) => set((state) => ({ pages: state.pages.map(p => p.id === pageId ? { ...p, containers: p.containers.filter(c => c.id !== cId) } : p) })),
@@ -1038,9 +1743,10 @@ export const useStore = create<AppState>()(
 );
 
 export const getTranslation = (key: string, lang: LanguageCode): string => {
-  const item = INITIAL_UI_LABELS[key];
+  const uiLabels = useStore.getState().uiLabels;
+  const item = uiLabels[key] || INITIAL_UI_LABELS[key];
   if (!item) return key;
-  return item[lang] || item['en'];
+  return item[lang] || item.en || key;
 };
 
 export const getLocalizedText = (text: MultilingualText | string, lang: LanguageCode): string => {
@@ -1079,4 +1785,55 @@ export const getGlobalTranslation = (id: string, translationItems: any[], lang: 
   const item = translationItems?.find(t => t.id === id);
   if (!item) return fallback;
   return item.translations[lang] || item.translations.en || fallback;
+};
+const fetchAllItems = async (
+  endpoint: string,
+  driveType: "images" | "documents",
+  folderId: string | null = null
+): Promise<any[]> => {
+
+  const url = folderId
+    ? `${API_BASE}${endpoint}?folderId=${folderId}`
+    : `${API_BASE}${endpoint}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    console.warn(`⚠️ ${url} returned ${response.status}`);
+    return [];
+  }
+
+  const data: any[] = await response.json();
+
+  let collectedItems: any[] = [];
+
+  for (const item of data) {
+    if (item.type === "folder") {
+      const childItems = await fetchAllItems(
+        endpoint,
+        driveType,
+        item.id
+      );
+      collectedItems = [...collectedItems, ...childItems];
+    } else {
+      collectedItems.push({
+        ...item,
+        url: `${API_BASE}/api/view-file/${driveType}/${item.id}` // ✅ fixed
+      });
+    }
+  }
+
+  return collectedItems;
+};
+
+const buildMediaMaps = (images: ImageItem[], documents: any[]) => {
+  const imageMap = Object.fromEntries(
+    images.map(i => [i.name?.toLowerCase(), i])
+  );
+
+  const documentMap = Object.fromEntries(
+    documents.map(d => [d.name?.toLowerCase() || d.title?.toLowerCase(), d])
+  );
+
+  return { imageMap, documentMap };
 };

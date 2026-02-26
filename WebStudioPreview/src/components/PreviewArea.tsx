@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     useStore, getLocalizedText, getItemTranslation, getGlobalTranslation, getTranslation,
-    GLOBAL_DEFAULT_IMAGE
+    GLOBAL_DEFAULT_IMAGE,
 } from '../store';
 import { ContainerType, ViewMode, ModalType, type NavItem, type ContactQuery, type LanguageCode } from '../types';
 import {
@@ -9,7 +10,7 @@ import {
     AlertTriangle, ChevronDown, MapPin, Mail, Phone,
     Linkedin, Facebook, Twitter, Instagram, ChevronLeft, ChevronRight,
     RefreshCw, FileText, FileSpreadsheet, Presentation, Link as LinkIcon, File,
-    Globe, Search, ArrowUp, ArrowDown, X, Info, Map as MapIcon
+    Globe, Search, ArrowUp, ArrowDown, X, Info, Map as MapIcon, Square
 } from 'lucide-react';
 import { ReadMoreModal } from './modals/ReadMoreModal';
 import { EditTrigger } from './modals/SharedModals';
@@ -1553,8 +1554,46 @@ const TopNavSubItem: React.FC<TopNavItemProps> = ({ item, allItems, onNavigate }
 };
 
 export const PreviewArea: React.FC = () => {
-    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems } = useStore();
-    const activePage = pages.find(p => p.id === currentPageId);
+    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading } = useStore();
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // 1. Initial Data Fetch
+    useEffect(() => {
+        loadFromApi();
+    }, []);
+
+    // 2. Sync URL Path -> App State (URL as Source of Truth)
+    useEffect(() => {
+        if (pages.length > 0) {
+            const path = location.pathname;
+            const targetPage = pages.find(p => p.slug === path || (path === '/' && p.slug === '/'));
+
+            if (targetPage && targetPage.id !== currentPageId) {
+                console.log('🔄 Syncing URL to State:', path, '->', targetPage.id);
+                setCurrentPage(targetPage.id);
+            }
+        }
+    }, [location.pathname, pages.length]); // Only react to pathname and pages count
+
+    // 3. Sync App State -> URL Path (State as Source of Truth)
+    useEffect(() => {
+        if (pages.length > 0) {
+            const activePage = pages.find(p => p.id === currentPageId);
+            if (activePage && activePage.slug !== location.pathname) {
+                // Check if normalizing slug helps (removing trailing slashes)
+                const normalizedActive = activePage.slug.replace(/\/$/, '') || '/';
+                const normalizedCurrent = location.pathname.replace(/\/$/, '') || '/';
+
+                if (normalizedActive !== normalizedCurrent) {
+                    console.log('🔄 Syncing State to URL:', currentPageId, '->', activePage.slug);
+                    navigate(activePage.slug);
+                }
+            }
+        }
+    }, [currentPageId]); // Primary dependency is currentPageId
+
+    const activePage = pages.find(p => p.id === currentPageId) || (pages.length > 0 ? pages[0] : null);
     const footerConfig = siteConfig.footer;
 
     const siteUrl = window.location.origin;
@@ -1619,15 +1658,15 @@ export const PreviewArea: React.FC = () => {
         const languages = siteConfig.languages || ['en'];
         const labelMap: Record<string, string> = {
             en: 'English',
-            de: 'Deutsch',
-            fr: 'Français',
-            es: 'Español',
-            it: 'Italiano',
-            pt: 'Português',
-            nl: 'Nederlands',
-            tr: 'Türkçe',
-            pl: 'Polski',
-            ru: 'Русский'
+            de: 'German',
+            fr: 'French',
+            es: 'Spanish',
+            it: 'Italian',
+            pt: 'Portuguese',
+            nl: 'Dutch',
+            tr: 'Turkish',
+            pl: 'Polish',
+            ru: 'Russian'
         };
 
         return (
@@ -1651,10 +1690,10 @@ export const PreviewArea: React.FC = () => {
                                     setLanguage(lang as LanguageCode);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${currentLanguage === lang ? 'text-[var(--primary-color)] font-bold bg-[var(--brand-light)]/30' : 'text-gray-600'}`}
+                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${currentLanguage === lang ? 'text-[var(--primary-color)] bg-[var(--brand-light)] font-bold' : 'text-gray-600'}`}
                             >
                                 <span>{labelMap[lang] || lang.toUpperCase()}</span>
-                                {currentLanguage === lang && <Check className="w-3 h-3" />}
+                                {currentLanguage === lang && <Square className="w-2 h-2 fill-current" />}
                             </button>
                         ))}
                     </div>
@@ -1679,6 +1718,17 @@ export const PreviewArea: React.FC = () => {
             )}
         </div>
     );
+
+    if (isLoading) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-gray-50 h-full w-full absolute inset-0 z-[100]">
+                <div className="flex flex-col items-center gap-4">
+                    <RefreshCw className="w-12 h-12 text-[var(--primary-color)] animate-spin" />
+                    <p className="text-sm font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading Platform Data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative">
@@ -1761,10 +1811,9 @@ export const PreviewArea: React.FC = () => {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                                 <TypeIcon className="w-12 h-12 mb-4 opacity-20" style={{ color: 'var(--icon-color, #2563eb)' }} />
-                                <p>This page is empty. Add containers to start building.</p>
+                                <p>This page ("{getLocalizedText(activePage.title, currentLanguage)}") is empty. Add containers to start building.</p>
                             </div>
                         )}
-
                         <footer
                             style={{
                                 backgroundColor: getFooterBg(),
@@ -1828,7 +1877,25 @@ export const PreviewArea: React.FC = () => {
                         </footer>
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">Select a page to view</div>
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
+                        <AlertTriangle className="w-16 h-16 opacity-20 text-orange-500" />
+                        <div className="text-center">
+                            <p className="text-xl font-bold text-gray-600">No Page Content Available</p>
+                            <p className="text-sm opacity-60 mt-1">
+                                {pages.length === 0
+                                    ? "The platform returned zero pages. Please check your Node API connectivity."
+                                    : `Current Page ID (${currentPageId}) not found in the ${pages.length} pages loaded.`}
+                            </p>
+                        </div>
+                        {pages.length > 0 && (
+                            <button
+                                onClick={() => setCurrentPage(pages[0].id)}
+                                className="mt-4 px-6 py-2 bg-[var(--primary-color)] text-white font-bold hover:opacity-90 transition-all"
+                            >
+                                Go to First Available Page
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
 
