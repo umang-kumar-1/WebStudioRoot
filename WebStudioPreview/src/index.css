@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* --- Global Typography Mapping (from SharePoint custom.css) --- */
+:root {
+    font-family: var(--font-family-base, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif);
+    font-size: var(--font-size-base, 14px);
+    --primary-color: #2f5596;
+    /* Fallback */
+}
+
+h1,
+.h1 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h1) !important;
+    color: var(--heading-h1-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+h2,
+.h2 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h2) !important;
+    color: var(--heading-h2-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+h3,
+.h3 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h3) !important;
+    color: var(--heading-h3-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+h4,
+.h4 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h4) !important;
+    color: var(--heading-h4-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+h5,
+.h5 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h5) !important;
+    color: var(--heading-h5-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+h6,
+.h6 {
+    font-family: var(--font-family-secondary);
+    font-size: var(--font-size-h6) !important;
+    color: var(--heading-h6-color);
+    font-weight: var(--font-weight-bold);
+    margin-top: 0;
+}
+
+p,
+span,
+div {
+    font-family: var(--font-family-base);
+}
+
+/* Fix for Tailwind base resetting heading styles too much */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    @apply leading-tight;
+}
+
+/* Ensure border none is respected and doesn't conflict with other card styles */
+.border-none {
+    border: none !important;
+}

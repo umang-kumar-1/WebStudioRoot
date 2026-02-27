@@ -4,13 +4,14 @@ import {
     useStore, getLocalizedText, getItemTranslation, getGlobalTranslation, getTranslation,
     GLOBAL_DEFAULT_IMAGE,
 } from '../store';
-import { ContainerType, ViewMode, ModalType, type NavItem, type ContactQuery, type LanguageCode } from '../types';
+import { ContainerType, ViewMode, ModalType } from '../types';
+import type { NavItem, ContactQuery, LanguageCode } from '../types';
 import {
     Pencil, Type as TypeIcon, CheckCircle, Check,
     AlertTriangle, ChevronDown, MapPin, Mail, Phone,
     Linkedin, Facebook, Twitter, Instagram, ChevronLeft, ChevronRight,
     RefreshCw, FileText, FileSpreadsheet, Presentation, Link as LinkIcon, File,
-    Globe, Search, ArrowUp, ArrowDown, X, Info, Map as MapIcon, Square
+    Globe, Search, ArrowUp, ArrowDown, X, Info
 } from 'lucide-react';
 import { ReadMoreModal } from './modals/ReadMoreModal';
 import { EditTrigger } from './modals/SharedModals';
@@ -21,6 +22,8 @@ const EventEditor = (_props: any) => null;
 const DocumentEditor = (_props: any) => null;
 const ContactEditor = (_props: any) => null;
 const ContainerItemEditor = (_props: any) => null;
+const SliderItemEditor = (_props: any) => null;
+const SliderManager = (_props: any) => null;
 
 const stripHtml = (html: string) => {
     if (!html) return "";
@@ -269,7 +272,9 @@ const HeaderRenderer = ({ container, lang }: ComponentRendererProps) => {
 const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
     const tmplId = container.settings.templateId;
     const [current, setCurrent] = useState(0);
-    const { sliderItems, viewMode } = useStore();
+    const [editingSlide, setEditingSlide] = useState<any | null>(null);
+    const [showSliderManager, setShowSliderManager] = useState(false);
+    const { sliderItems, updateSliderItem, deleteSliderItem, viewMode } = useStore();
 
     const taggedIds = container.settings.taggedItems || [];
     const taggedSliderItems = taggedIds
@@ -278,19 +283,31 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
 
     // Dynamic slides from tagged ImageSlider items, fallback to container slides
     const dynamicSlides = taggedSliderItems.length > 0
-        ? taggedSliderItems.map((item: any) => ({
-            id: item.id,
-            title: getItemTranslation(item, lang, 'title') || item.title || '',
-            sub: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
-            subtitle: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
-            desc: getItemTranslation(item, lang, 'description') || item.description || '',
-            cta: getItemTranslation(item, lang, 'ctaText') || item.ctaText || '',
-            url: item.ctaUrl || '',
-            img: item.imageUrl || '',
-            image: item.imageUrl || '',
-            originalItem: item
-        }))
-        : (container.settings.slides && container.settings.slides.length > 0 ? container.settings.slides : []);
+        ? taggedSliderItems.map((item: any) => {
+            const containerSlide = (container.settings.slides || []).find((s: any) => s.id === item.id) || {};
+            let layout = containerSlide.layout;
+            const sub = item.subtitle;
+            if (!layout && (sub === 'split_left_img' || sub === 'split_right_img' || sub === 'solid_color' || sub === 'text_overlay')) {
+                layout = sub;
+            }
+            if (!layout) layout = 'text_overlay';
+
+            return {
+                id: item.id,
+                title: getItemTranslation(item, lang, 'title') || item.title || '',
+                sub: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
+                subtitle: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
+                desc: getItemTranslation(item, lang, 'description') || item.description || '',
+                cta: getItemTranslation(item, lang, 'ctaText') || item.ctaText || '',
+                url: item.ctaUrl || containerSlide.url || '',
+                img: item.imageUrl || containerSlide.image || containerSlide.img || '',
+                image: item.imageUrl || containerSlide.image || containerSlide.img || '',
+                layout: layout,
+                adjustments: containerSlide.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 },
+                originalItem: item
+            };
+        })
+        : (container.settings.slides && container.settings.slides.length > 0 ? container.settings.slides.map((s: any) => ({ ...s, layout: s.layout || 'text_overlay', adjustments: s.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 } })) : []);
 
     // Ensure current index is valid
     useEffect(() => {
@@ -330,6 +347,14 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
 
         return (
             <div className="w-full bg-white relative py-16 flex items-center justify-center">
+                {editingSlide && (
+                    <SliderItemEditor
+                        item={editingSlide}
+                        onSave={async (updated: any) => { await updateSliderItem(updated); setEditingSlide(null); }}
+                        onCancel={() => setEditingSlide(null)}
+                        onDelete={async (id: string) => { await deleteSliderItem(id); setEditingSlide(null); }}
+                    />
+                )}
                 <div className="w-full max-w-6xl px-8">
                     <div className="mb-8">
                         {sliderTitle && (
@@ -344,10 +369,14 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
                             {showTitle && (
                                 <div className="flex items-center gap-2 group/slide">
                                     <h2 className="text-2xl font-bold text-gray-800">{getLocalizedText(activeSlide.title, lang)}</h2>
-                                    {activeSlide.originalItem && viewMode === ViewMode.EDIT && (
-                                        <div className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1">
+                                    {activeSlide.originalItem && (
+                                        <button
+                                            onClick={() => setEditingSlide(activeSlide.originalItem)}
+                                            className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
+                                            title="Edit slide"
+                                        >
                                             <Pencil className="w-4 h-4 text-gray-400" />
-                                        </div>
+                                        </button>
                                     )}
                                 </div>
                             )}
@@ -391,6 +420,11 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
 
     return (
         <div className="w-full bg-white">
+            {/* SliderManager Modal */}
+            {showSliderManager && (
+                <SliderManager onClose={() => setShowSliderManager(false)} />
+            )}
+
             {/* Section Header */}
             {(sliderTitle || sliderSubheading) && (
                 <div className="px-8 pt-10 pb-4 max-w-7xl mx-auto">
@@ -416,43 +450,97 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
                 )}
 
                 {/* Image Area */}
-                <div className="flex-1 relative overflow-hidden bg-gray-900" style={{ height: '480px' }}>
-                    <div
-                        className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-                        style={{
-                            backgroundImage: `url(${activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE})`,
-                        }}
-                    />
-                    {/* Dark gradient at bottom */}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
-
-                    {/* Slide title + pencil at bottom overlay */}
-                    <div className="absolute bottom-0 inset-x-0 px-6 pb-5 flex items-end justify-between">
-                        <div className="flex items-center gap-2">
-                            {container.settings.showSlideTitle !== false && (
-                                <h3 className="text-xl font-bold text-white uppercase tracking-wide">
-                                    {getLocalizedText(activeSlide.title, lang)}
-                                </h3>
-                            )}
-                            {viewMode === ViewMode.EDIT && (
-                                <div className="text-white/70 hover:text-white transition-colors">
-                                    <Pencil className="w-4 h-4" />
-                                </div>
-                            )}
-                        </div>
-                        {/* Dots navigation */}
-                        <div className="flex items-center gap-1.5">
-                            {dynamicSlides.map((_: any, i: number) => (
-                                <button
-                                    key={i}
-                                    onClick={() => setCurrent(i)}
-                                    className={`rounded-full transition-all ${i === current
-                                        ? 'w-4 h-2 bg-white'
-                                        : 'w-2 h-2 bg-white/50 hover:bg-white/75'
-                                        }`}
+                <div className="flex-1 relative overflow-hidden bg-gray-100" style={{ height: '480px' }}>
+                    {tmplId === 'img_text' ? (
+                        <div className="w-full h-full relative group">
+                            {/* Image side based on layout */}
+                            {activeSlide.img || activeSlide.image ? (
+                                <img
+                                    src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
+                                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
+                                    style={{
+                                        left: activeSlide.layout === 'split_right_img' ? '50%' : '0',
+                                        filter: activeSlide.adjustments ? `brightness(${activeSlide.adjustments.brightness}%) contrast(${activeSlide.adjustments.contrast}%)` : 'none',
+                                        transform: activeSlide.adjustments ? `scale(${activeSlide.adjustments.zoom}) rotate(${activeSlide.adjustments.rotate}deg)` : 'none'
+                                    }}
                                 />
-                            ))}
+                            ) : (
+                                <div
+                                    className={`absolute inset-0 w-full h-full bg-gray-800 transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
+                                    style={{ left: activeSlide.layout === 'split_right_img' ? '50%' : '0' }}
+                                />
+                            )}
+
+                            {/* Content overlay side based on layout */}
+                            <div className={`absolute p-12 flex flex-col justify-center transition-all duration-700 ${activeSlide.layout === 'text_overlay' || !activeSlide.layout ? 'inset-0 bg-black/40 text-white items-center text-center' : ''} ${activeSlide.layout === 'solid_color' ? 'inset-0 bg-gray-800 text-white items-center text-center z-0' : ''} ${activeSlide.layout === 'split_left_img' ? 'right-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pl-16' : ''} ${activeSlide.layout === 'split_right_img' ? 'left-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pr-16' : ''}`}>
+                                {container.settings.showSlideTitle !== false && (
+                                    <h3 className={`text-4xl font-bold mb-4 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white' : 'text-gray-900'}`}>{getLocalizedText(activeSlide.title, lang)}</h3>
+                                )}
+                                <h4 className={`text-xl font-medium mb-6 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-90' : 'text-gray-600'}`}>{getLocalizedText(activeSlide.subtitle || activeSlide.sub, lang)}</h4>
+                                {container.settings.showSlideDescription !== false && (
+                                    <div className={`text-base leading-relaxed mb-8 max-w-2xl ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-80' : 'text-gray-700'}`} dangerouslySetInnerHTML={{ __html: getLocalizedText(activeSlide.desc, lang) }} />
+                                )}
+                                {activeSlide.cta && (
+                                    <a href={activeSlide.url || '#'} className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold tracking-wide rounded-sm shadow-md hover:opacity-90">{getLocalizedText(activeSlide.cta, lang)}</a>
+                                )}
+
+                                {/* Edit Button for the slide */}
+                                {viewMode === ViewMode.EDIT && (
+                                    <button
+                                        onClick={() => setShowSliderManager(true)}
+                                        className={`absolute top-6 right-6 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'bg-black/30 text-white hover:bg-black/50' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'}`}
+                                        title="Manage slides"
+                                    >
+                                        <Pencil className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
+                    ) : (
+                        <>
+                            <div
+                                className="absolute inset-0 bg-cover bg-center transition-all duration-700"
+                                style={{
+                                    backgroundImage: `url(${activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE})`,
+                                }}
+                            />
+                            {/* Dark gradient at bottom */}
+                            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
+
+                            {/* Slide title + pencil at bottom overlay */}
+                            <div className="absolute bottom-0 inset-x-0 px-6 pb-5 flex items-end justify-between">
+                                <div className="flex items-center gap-2">
+                                    {container.settings.showSlideTitle !== false && (
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-wide">
+                                            {getLocalizedText(activeSlide.title, lang)}
+                                        </h3>
+                                    )}
+                                    {viewMode === ViewMode.EDIT && (
+                                        <button
+                                            onClick={() => setShowSliderManager(true)}
+                                            className="text-white/70 hover:text-white transition-colors"
+                                            title="Manage slides"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Dots navigation */}
+                    <div className="absolute bottom-5 inset-x-0 flex justify-center gap-2 z-10">
+                        {dynamicSlides.map((_: any, i: number) => (
+                            <button
+                                key={i}
+                                onClick={() => setCurrent(i)}
+                                className={`rounded-full transition-all ${i === current
+                                    ? `w-8 h-2 ${tmplId === 'img_text' && (activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img') ? 'bg-[var(--primary-color)]' : 'bg-white'}`
+                                    : `w-2 h-2 ${tmplId === 'img_text' && (activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img') ? 'bg-gray-300 hover:bg-gray-400' : 'bg-white/50 hover:bg-white/75'}`
+                                    }`}
+                            />
+                        ))}
                     </div>
                 </div>
 
@@ -600,7 +688,7 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
         }
     }, [isSlider, settings.autoplay, settings.speed]);
 
-    const borderClass = settings.border === 'rounded' ? 'rounded-md' : (settings.border === 'circle' ? 'rounded-xl' : 'rounded-none');
+    const borderClass = settings.border === 'rounded' || settings.border === 'Rounded' ? 'rounded-md' : (settings.border === 'circle' || settings.border === 'Circle' ? 'rounded-xl' : 'rounded-none');
 
     // Helper: Convert number to Roman Numeral
     const toRoman = (num: number): string => {
@@ -688,8 +776,8 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
             <div
                 ref={scrollContainer}
                 className={`
-                    ${isSlider ? 'flex flex-nowrap overflow-x-hidden snap-x snap-mandatory' : 'grid'} 
-                    ${spacingClass}
+                ${isSlider ? 'flex flex-nowrap overflow-x-hidden snap-x snap-mandatory' : 'grid'} 
+                ${spacingClass}
 `}
                 style={{
                     gridTemplateColumns: isSlider ? undefined : `repeat(${cols}, minmax(0, 1fr))`,
@@ -702,15 +790,14 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                     return (
                         <div
                             key={item.id}
-                            className={`bg-white ${settings.border !== 'none' ? 'border border-gray-200 shadow-sm' : ''} overflow-hidden group flex relative
+                            className={`bg-white ${(settings.border && settings.border.toLowerCase() !== 'none') ? 'border border-gray-200 shadow-sm' : ''} overflow-hidden group flex relative
                                 ${layout.card}
                                 ${borderClass} 
                                 ${isSlider ? 'snap-start flex-shrink-0' : ''}`} style={{ width: isSlider ? cardWidth : 'auto', flex: isSlider ? `0 0 ${cardWidth}` : undefined }}>
-
                             {/* Image Area - Responsive & Conditional */}
                             {settings.imgPos !== 'none' && hasVisual && (() => {
-                                const isCircle = settings.imgBorder === 'circle';
-                                const isRounded = settings.imgBorder === 'rounded';
+                                const isCircle = settings.imgBorder === 'circle' || settings.imgBorder === 'Circle';
+                                const isRounded = settings.imgBorder === 'rounded' || settings.imgBorder === 'Rounded';
 
                                 if (isCircle) {
                                     // Circle mode: fixed centered avatar
@@ -740,17 +827,17 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                                 <div className="text-[10px] font-bold uppercase mt-2 opacity-60 tracking-wider font-mono">{item.type || 'Item'}</div>
                                             </div>
                                         )}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                                     </div>
                                 );
                             })()}
 
-                            {/* Dual Layout Content based on Source or Border Type */}
+                            {/* No absolute pencil here, we'll put it inline for contacts or title-based items */}
+
                             {(settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle') ? (
                                 /* ---- CONTACT / CIRCLE CARD: center-aligned ---- */
                                 <div className="p-5 flex-1 flex flex-col items-center text-center">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors leading-snug" style={{ fontFamily: 'var(--font-family-secondary)' }}>
+                                        <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors">
                                             {item.title}
                                         </h3>
                                         {viewMode === ViewMode.EDIT && (
@@ -760,7 +847,6 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                                     setEditingItem({ item: item.originalItem, type: 'Contact' });
                                                 }}
                                                 className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
-                                                title="Edit Contact"
                                             >
                                                 <Pencil className="w-3.5 h-3.5" />
                                             </button>
@@ -786,8 +872,7 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                 /* ---- REGULAR CARD: left-aligned, numbered layout ---- */
                                 <div className="p-4 flex-1 flex flex-col text-left">
                                     {!isNumbered && (
-                                        <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 font-mono">
-                                            <span className="w-6 h-[1px] bg-gray-200"></span>
+                                        <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                                             <span>{new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                                         </div>
                                     )}
@@ -795,12 +880,12 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                     {/* Number + Title row — horizontal for numbered mode */}
                                     <div className={`mb-3 ${isNumbered ? 'flex flex-row items-start gap-3' : ''}`}>
                                         {isNumbered && (
-                                            <div className={`font-bold text-gray-100 font-mono select-none leading-none flex-shrink-0 mt-0.5 ${settings.ordering === 'IIIII' ? 'text-xl tracking-tighter' : 'text-4xl'}`} style={{ fontFamily: 'var(--font-family-secondary)' }}>
+                                            <div className={`font-bold text-gray-200 font-mono select-none leading-none flex-shrink-0 mt-0.5 ${settings.ordering === 'IIIII' ? 'text-xl tracking-tighter' : 'text-4xl'}`}>
                                                 {getOrderedLabel(idx)}
                                             </div>
                                         )}
                                         <div className="flex items-start gap-2 flex-1">
-                                            <h3 className={`font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1 ${isNumbered ? '' : 'text-base'}`} style={{ fontFamily: 'var(--font-family-secondary)' }}>
+                                            <h3 className={`font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1 ${isNumbered ? '' : 'text-base'}`}>
                                                 {item.title}
                                             </h3>
                                             {viewMode === ViewMode.EDIT && (
@@ -814,7 +899,6 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                                         }
                                                     }}
                                                     className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
-                                                    title={`Edit ${settings.source}`}
                                                 >
                                                     <Pencil className="w-3.5 h-3.5" />
                                                 </button>
@@ -823,30 +907,19 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                     </div>
 
                                     {item.desc && (
-                                        <p className="text-sm text-gray-600 mb-6 line-clamp-3 flex-1 leading-relaxed">{stripHtml(item.desc)}</p>
+                                        <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">{stripHtml(item.desc)}</p>
                                     )}
 
-                                    <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
-                                        <button
-                                            onClick={() => setActiveReadMoreItem({ item, index: idx })}
-                                            className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
-                                        >
-                                            <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                                            <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                                                {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                                                <ChevronRight className="w-3 h-3" />
-                                            </div>
-                                        </button>
-
-                                        {settings.source === 'Document' && (
-                                            <div className="p-1.5 bg-gray-50 rounded-sm">
-                                                {item.type === 'Word' ? <FileText className="w-4 h-4 text-blue-500 opacity-60" /> :
-                                                    item.type === 'Excel' ? <FileSpreadsheet className="w-4 h-4 text-green-500 opacity-60" /> :
-                                                        item.type === 'PDF' ? <File className="w-4 h-4 text-red-500 opacity-60" /> :
-                                                            <File className="w-4 h-4 text-gray-400 opacity-60" />}
-                                            </div>
-                                        )}
-                                    </div>
+                                    <button
+                                        onClick={() => setActiveReadMoreItem({ item, index: idx })}
+                                        className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
+                                    >
+                                        <span>{getTranslation('BTN_READ_MORE', lang)}</span>
+                                        <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
+                                            {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
+                                            <ChevronRight className="w-3 h-3" />
+                                        </div>
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -854,10 +927,10 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                 })}
 
                 {items.length === 0 && (
-                    <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-100 rounded-sm bg-gray-50/50 w-full flex flex-col items-center justify-center">
-                        <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-200" />
-                        <p className="text-gray-400 font-medium text-sm">No items tagged for display.</p>
-                        <p className="text-[10px] text-gray-300 uppercase tracking-widest mt-1 font-bold">Edit the container to connect items</p>
+                    <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-200 rounded-sm bg-gray-50/50 w-full flex flex-col items-center justify-center">
+                        <AlertTriangle className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--icon-color)' }} />
+                        <p className="text-gray-500 font-medium">No items tagged for display.</p>
+                        <p className="text-xs text-gray-400">Edit the container to connect items.</p>
                     </div>
                 )}
             </div>
@@ -1376,7 +1449,7 @@ const MapRenderer = ({ container, lang }: ComponentRendererProps) => {
 
     return (
         <div className="py-16 px-6 max-w-7xl mx-auto">
-            <h2 className="text-3xl font-bold text-[var(--primary-color)] mb-8">
+            <h2 className="font-bold text-[var(--primary-color)] mb-8">
                 {getLocalizedText(content.title, lang)}
             </h2>
 
@@ -1391,7 +1464,7 @@ const MapRenderer = ({ container, lang }: ComponentRendererProps) => {
 
                 {/* Label Overlay */}
                 <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                    <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-sm shadow-md border-l-4 border-[var(--primary-color)] flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-500">
+                    <div className="bg-white/95 backdrop-blur-sm px-4 py-2 rounded-sm shadow-md border-l-4 border-[var(--primary-color)] flex items-center gap-3">
                         {settings.mapType === 'World' ? (
                             <Globe className="w-5 h-5 text-gray-500" />
                         ) : (
@@ -1403,13 +1476,6 @@ const MapRenderer = ({ container, lang }: ComponentRendererProps) => {
                                 {settings.selectedState ? settings.selectedState.split('-')[1] : (settings.selectedRegion || settings.mapType || 'World')}
                             </span>
                         </div>
-                    </div>
-                </div>
-
-                {/* Interaction Hint */}
-                <div className="absolute bottom-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <div className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-2">
-                        <MapIcon className="w-3 h-3" /> Interactive Map
                     </div>
                 </div>
             </div>
@@ -1640,67 +1706,6 @@ export const PreviewArea: React.FC = () => {
         </nav>
     );
 
-    const LanguageSelector = () => {
-        const { currentLanguage, setLanguage, siteConfig } = useStore();
-        const [isOpen, setIsOpen] = useState(false);
-        const dropdownRef = useRef<HTMLDivElement>(null);
-
-        useEffect(() => {
-            const handleClickOutside = (event: MouseEvent) => {
-                if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                    setIsOpen(false);
-                }
-            };
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }, []);
-
-        const languages = siteConfig.languages || ['en'];
-        const labelMap: Record<string, string> = {
-            en: 'English',
-            de: 'German',
-            fr: 'French',
-            es: 'Spanish',
-            it: 'Italian',
-            pt: 'Portuguese',
-            nl: 'Dutch',
-            tr: 'Turkish',
-            pl: 'Polish',
-            ru: 'Russian'
-        };
-
-        return (
-            <div className="relative" ref={dropdownRef}>
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-sm hover:bg-black/5 transition-colors"
-                    title="Change Language"
-                >
-                    <Globe className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-bold uppercase text-gray-700">{currentLanguage}</span>
-                    <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {isOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-[60] bg-white border border-gray-200 shadow-xl min-w-[140px] py-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                        {languages.map((lang) => (
-                            <button
-                                key={lang}
-                                onClick={() => {
-                                    setLanguage(lang as LanguageCode);
-                                    setIsOpen(false);
-                                }}
-                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${currentLanguage === lang ? 'text-[var(--primary-color)] bg-[var(--brand-light)] font-bold' : 'text-gray-600'}`}
-                            >
-                                <span>{labelMap[lang] || lang.toUpperCase()}</span>
-                                {currentLanguage === lang && <Square className="w-2 h-2 fill-current" />}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     const LogoComponent = () => (
         <div className="flex-shrink-0 cursor-pointer" onClick={(e) => handleInternalLink(e as any, '/')}>
@@ -1751,11 +1756,10 @@ export const PreviewArea: React.FC = () => {
                         {/* Case: Below Logo (Stacked) */}
                         {siteConfig.navPosition === 'below_logo' && (
                             <>
-                                <div className={`flex w-full items-center justify-between`}>
+                                <div className={`flex w-full justify-${siteConfig.logo.position}`}>
                                     <LogoComponent />
-                                    <LanguageSelector />
                                 </div>
-                                <div className="w-full border-t border-gray-100 pt-2 text-center">
+                                <div className="w-full border-t border-gray-100 pt-2">
                                     {renderNavItems()}
                                 </div>
                             </>
@@ -1786,11 +1790,6 @@ export const PreviewArea: React.FC = () => {
                                         {renderNavItems()}
                                     </div>
                                 )}
-
-                                {/* Far Right Actions (Language, etc) */}
-                                <div className="ml-auto md:ml-0 flex items-center gap-4">
-                                    <LanguageSelector />
-                                </div>
                             </div>
                         )}
                     </div>
@@ -1811,7 +1810,7 @@ export const PreviewArea: React.FC = () => {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                                 <TypeIcon className="w-12 h-12 mb-4 opacity-20" style={{ color: 'var(--icon-color, #2563eb)' }} />
-                                <p>This page ("{getLocalizedText(activePage.title, currentLanguage)}") is empty. Add containers to start building.</p>
+                                <p>This page is empty. Add containers to start building.</p>
                             </div>
                         )}
                         <footer
@@ -1877,25 +1876,7 @@ export const PreviewArea: React.FC = () => {
                         </footer>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
-                        <AlertTriangle className="w-16 h-16 opacity-20 text-orange-500" />
-                        <div className="text-center">
-                            <p className="text-xl font-bold text-gray-600">No Page Content Available</p>
-                            <p className="text-sm opacity-60 mt-1">
-                                {pages.length === 0
-                                    ? "The platform returned zero pages. Please check your Node API connectivity."
-                                    : `Current Page ID (${currentPageId}) not found in the ${pages.length} pages loaded.`}
-                            </p>
-                        </div>
-                        {pages.length > 0 && (
-                            <button
-                                onClick={() => setCurrentPage(pages[0].id)}
-                                className="mt-4 px-6 py-2 bg-[var(--primary-color)] text-white font-bold hover:opacity-90 transition-all"
-                            >
-                                Go to First Available Page
-                            </button>
-                        )}
-                    </div>
+                    <div className="flex items-center justify-center h-full text-gray-400">Select a page to view</div>
                 )}
             </div>
 

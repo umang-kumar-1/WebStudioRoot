@@ -144,91 +144,91 @@ export const INITIAL_UI_LABELS: Record<string, MultilingualText> = {
 };
 
 export const DEFAULT_THEME: ThemeConfig = {
-  // // Brand Colors (Corporate Blue #2f5596)
-  // '--primary-color': '#2f5596',
-  // '--secondary-color': '#1f3f73',
-  // '--brand-light': '#e6ecf7',
-  // '--brand-dark': '#1c355f',
-  // '--gradient-primary': 'linear-gradient(135deg, #2f5596 0%, #1f3f73 100%)',
+  // Brand Colors (Corporate Blue #2f5596)
+  '--primary-color': '#2f5596',
+  '--secondary-color': '#1f3f73',
+  '--brand-light': '#e6ecf7',
+  '--brand-dark': '#1c355f',
+  '--gradient-primary': 'linear-gradient(135deg, #2f5596 0%, #1f3f73 100%)',
 
-  // // Sidebar Specific
-  // '--sidebar-bg': '#ffffff',
-  // '--sidebar-text': '#1f2937',
-  // '--sidebar-text-muted': '#6b7280',
-  // '--sidebar-border-color': '#e5e7eb',
+  // Sidebar Specific
+  '--sidebar-bg': '#ffffff',
+  '--sidebar-text': '#1f2937',
+  '--sidebar-text-muted': '#6b7280',
+  '--sidebar-border-color': '#e5e7eb',
 
-  // '--sidebar-icon-color': '#2f5596',
-  // '--sidebar-link-color': '#2f5596',
-  // '--sidebar-link-hover-color': '#1f3f73',
-  // '--sidebar-active-text-color': '#2f5596',
-  // '--sidebar-active-indicator-color': '#2f5596',
-  // '--sidebar-button-color': '#2f5596',
-  // '--sidebar-active-bg': '#eff6ff',
-  // '--sidebar-hover-bg': '#f9fafb',
+  '--sidebar-icon-color': '#2f5596',
+  '--sidebar-link-color': '#2f5596',
+  '--sidebar-link-hover-color': '#1f3f73',
+  '--sidebar-active-text-color': '#2f5596',
+  '--sidebar-active-indicator-color': '#2f5596',
+  '--sidebar-button-color': '#2f5596',
+  '--sidebar-active-bg': '#eff6ff',
+  '--sidebar-hover-bg': '#f9fafb',
 
-  // // Text & Links
-  // '--text-primary': '#1f2937',
-  // '--text-secondary': '#4b5563',
-  // '--text-on-primary': '#ffffff',
-  // '--link-color': '#2f5596',
-  // '--link-hover-color': '#1f3f73',
+  // Text & Links
+  '--text-primary': '#1f2937',
+  '--text-secondary': '#4b5563',
+  '--text-on-primary': '#ffffff',
+  '--link-color': '#2f5596',
+  '--link-hover-color': '#1f3f73',
 
-  // // Backgrounds
-  // '--bg-body': '#f8fafc',
-  // '--bg-surface': '#ffffff',
-  // '--bg-hover': '#eef2ff',
+  // Backgrounds
+  '--bg-body': '#f8fafc',
+  '--bg-surface': '#ffffff',
+  '--bg-hover': '#eef2ff',
 
-  // // Buttons
-  // '--btn-primary-bg': '#2f5596',
-  // '--btn-primary-text': '#ffffff',
-  // '--btn-primary-hover-bg': '#1f3f73',
-  // '--btn-secondary-bg': '#ffffff',
-  // '--btn-secondary-text': '#1f2937',
-  // '--btn-padding-y': '0.5rem',
-  // '--btn-padding-x': '1.25rem',
-  // '--btn-font-size': '14px',
+  // Buttons
+  '--btn-primary-bg': '#2f5596',
+  '--btn-primary-text': '#ffffff',
+  '--btn-primary-hover-bg': '#1f3f73',
+  '--btn-secondary-bg': '#ffffff',
+  '--btn-secondary-text': '#1f2937',
+  '--btn-padding-y': '0.5rem',
+  '--btn-padding-x': '1.25rem',
+  '--btn-font-size': '14px',
 
-  // // Status
-  // '--status-success': '#16a34a',
-  // '--status-warning': '#f59e0b',
-  // '--status-error': '#dc2626',
+  // Status
+  '--status-success': '#16a34a',
+  '--status-warning': '#f59e0b',
+  '--status-error': '#dc2626',
 
-  // // Borders
-  // '--border-radius-sm': '0px',
-  // '--border-radius-md': '0px',
-  // '--border-radius-lg': '0px',
-  // '--border-color': '#d1d5db',
+  // Borders
+  '--border-radius-sm': '0px',
+  '--border-radius-md': '0px',
+  '--border-radius-lg': '0px',
+  '--border-color': '#d1d5db',
 
-  // // Typography
-  // '--font-import-url': '',
-  // '--font-family-base': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
-  // '--font-family-secondary': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+  // Typography
+  '--font-import-url': '',
+  '--font-family-base': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
+  '--font-family-secondary': '"Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif',
 
-  // '--heading-color': '#1f2937',
-  // '--heading-h1-color': 'var(--heading-color)',
-  // '--heading-h2-color': 'var(--heading-color)',
-  // '--heading-h3-color': 'var(--heading-color)',
-  // '--heading-h4-color': 'var(--heading-color)',
-  // '--heading-h5-color': 'var(--heading-color)',
-  // '--heading-h6-color': 'var(--heading-color)',
+  '--heading-color': '#1f2937',
+  '--heading-h1-color': 'var(--heading-color)',
+  '--heading-h2-color': 'var(--heading-color)',
+  '--heading-h3-color': 'var(--heading-color)',
+  '--heading-h4-color': 'var(--heading-color)',
+  '--heading-h5-color': 'var(--heading-color)',
+  '--heading-h6-color': 'var(--heading-color)',
 
-  // '--font-size-base': '14px',
-  // '--font-size-h1': '42px',
-  // '--font-size-h2': '32px',
-  // '--font-size-h3': '24px',
-  // '--font-size-h4': '20px',
-  // '--font-size-h5': '16px',
-  // '--font-size-h6': '14px',
-  // '--font-weight-bold': '600',
+  '--font-size-base': '14px',
+  '--font-size-h1': '42px',
+  '--font-size-h2': '32px',
+  '--font-size-h3': '24px',
+  '--font-size-h4': '20px',
+  '--font-size-h5': '16px',
+  '--font-size-h6': '14px',
+  '--font-weight-bold': '600',
 
-  // // Icon Styling
-  // '--icon-color': '#2f5596',
-  // '--edit-icon-bg': '#2563eb',
-  // '--edit-icon-color': '#ffffff',
-  // '--edit-icon-hover-bg': '#1d4ed8',
+  // Icon Styling
+  '--icon-color': '#2f5596',
+  '--edit-icon-bg': '#2563eb',
+  '--edit-icon-color': '#ffffff',
+  '--edit-icon-hover-bg': '#1d4ed8',
 };
 
-export const GLOBAL_DEFAULT_IMAGE = '';
+export const GLOBAL_DEFAULT_IMAGE = 'https://hochhuth-consulting.de//images/logo.png';
 
 const unescapeHtml = (str: string): string => {
   if (!str) return '';
@@ -1059,9 +1059,16 @@ export const useStore = create<AppState>()(
             fetchAllItems("/api/publishing-images", "images").catch(() => [])
           ]);
 
+          const filteredNav = spNav?.filter((item: any) => item?.Status === "Published");
+          const filteredNews = spNews?.filter((item: any) => item?.Status === "Published");
+          const filteredEvents = spEvents?.filter((item: any) => item?.Status === "Published");
+          const filteredDocs = spDocs?.filter((item: any) => item?.Status === "Published");
+          const filteredContacts = spContacts?.filter((item: any) => item?.Status === "Published");
+          const filteredSliderItems = spSliderItems?.filter((item: any) => item?.Status === "Published");
+
           /* ================= MEDIA BINDING ================= */
 
-          const { imageMap, documentMap } = buildMediaMaps(allImagesRaw, spDocs);
+          const { imageMap, documentMap } = buildMediaMaps(allImagesRaw, filteredDocs);
 
           const resolveImage = (item: any): string => {
             if (!item) return "";
@@ -1267,7 +1274,7 @@ export const useStore = create<AppState>()(
 
           /* ================= NAVIGATION ================= */
 
-          const transformedNav = spNav.map((item: any) => ({
+          const transformedNav = filteredNav.map((item: any) => ({
             id: normalizeId(item.id),
             parentId: item.ParentLookupId ? normalizeId(item.ParentLookupId) : 'root',
             title: item.Title,
@@ -1283,7 +1290,7 @@ export const useStore = create<AppState>()(
 
           /* ================= NEWS ================= */
 
-          const transformedNews = spNews.map((item: any) => ({
+          const transformedNews = filteredNews.map((item: any) => ({
             id: normalizeId(item.id),
             title: item.Title,
             status: item.Status || 'Draft',
@@ -1306,7 +1313,7 @@ export const useStore = create<AppState>()(
 
           /* ================= EVENTS ================= */
 
-          const transformedEvents = spEvents.map((item: any) => ({
+          const transformedEvents = filteredEvents.map((item: any) => ({
             id: normalizeId(item.id),
             title: item.Title,
             status: item.Status || 'Draft',
@@ -1332,7 +1339,7 @@ export const useStore = create<AppState>()(
 
           /* ================= DOCUMENTS ================= */
 
-          const transformedDocs = spDocs.map((item: any) => ({
+          const transformedDocs = filteredDocs.map((item: any) => ({
             id: normalizeId(item.id),
             title: item.Title,
             name: item.Name,
@@ -1390,7 +1397,7 @@ export const useStore = create<AppState>()(
 
           /* ================= CONTACTS ================= */
 
-          const transformedContacts = spContacts.map((item: any) => ({
+          const transformedContacts = filteredContacts.map((item: any) => ({
             id: normalizeId(item.id),
             fullName: item.Title || '',
             firstName: item.FirstName || '',
@@ -1432,7 +1439,7 @@ export const useStore = create<AppState>()(
 
           /* ================= SLIDER ITEMS ================= */
 
-          const transformedSliderItems = spSliderItems.map((item: any) => ({
+          const transformedSliderItems = filteredSliderItems.map((item: any) => ({
             id: normalizeId(item.id),
             title: item.Title || '',
             subtitle: item.Subtitle || '',
