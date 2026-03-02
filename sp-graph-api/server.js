@@ -172,7 +172,6 @@ app.get("/api/smart-metadata", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.SMART_METADATA_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -195,7 +194,6 @@ app.get("/api/containers", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.CONTAINERS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -218,7 +216,6 @@ app.get("/api/events", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.EVENTS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -241,7 +238,6 @@ app.get("/api/news", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.NEWS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -264,7 +260,6 @@ app.get("/api/containerItems", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.CONTAINER_ITEMS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -287,7 +282,6 @@ app.get("/api/globalSettings", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.GLOBAL_SETTINGS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -309,8 +303,7 @@ app.get("/api/contacts", async (req, res) => {
   try {
     const token = await getToken();
 
-    const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.CONTACTS_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
+    const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.CONTACTS_LIST_ID}/items?$expand=fields($select=*)`
 
     const response = await axios.get(url, {
       headers: {
@@ -334,7 +327,6 @@ app.get("/api/smartPages", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.SMART_PAGES_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -357,7 +349,6 @@ app.get("/api/contactQueries", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.CONTACT_QUERIES_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -380,7 +371,6 @@ app.get("/api/imageSlider", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.IMAGE_SLIDER_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
 
     const response = await axios.get(url, {
       headers: {
@@ -402,8 +392,7 @@ app.get("/api/topNavigation", async (req, res) => {
   try {
     const token = await getToken();
 
-    const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.TOP_NAVIGATION_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
+    const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.TOP_NAVIGATION_LIST_ID}/items?$expand=fields($select=*)`
 
     const response = await axios.get(url, {
       headers: {
@@ -426,7 +415,29 @@ app.get("/api/translationDictionary", async (req, res) => {
     const token = await getToken();
 
     const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.TRANSLATION_DICTIONARY_LIST_ID}/items?$expand=fields($select=*)`;
-    console.log("FINAL GRAPH URL:", url);
+
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    const items = response.data.value.map(item => ({
+      id: item.id,
+      ...item.fields
+    }));
+
+    res.json(items);
+  } catch (err) {
+    console.error("SMART METADATA ERROR:", err.response?.data || err.message);
+    res.status(500).json({ error: "Unable to load list items" });
+  }
+});
+app.get("/api/documentMetaData", async (req, res) => {
+  try {
+    const token = await getToken();
+
+    const url = `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}/lists/${process.env.DOCUMENT_METADATA_LIST_ID}/items?$expand=fields($select=*)`;
+    console.log("FINAL GRAPH URL metadata url :", url);
 
     const response = await axios.get(url, {
       headers: {

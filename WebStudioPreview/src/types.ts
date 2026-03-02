@@ -148,6 +148,7 @@ export interface DocumentItem {
     imageUrl?: string;
     imageName?: string;
     url?: string;
+    openInNewTab?: boolean;
     itemRank?: number;
     file?: File;
     translations?: Record<string, {

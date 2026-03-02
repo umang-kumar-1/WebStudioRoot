@@ -81,10 +81,10 @@ export const SharedVersionHistoryModal = ({ onClose, data }: { onClose: () => vo
     );
 };
 
-export const GenericModal = ({ title, subtitle, children, onClose, width = 'max-w-2xl', noFooter = false, headerIcons = null, className = '', customFooter = null, hasActiveSubModal = false }: any) => {
+export const GenericModal = ({ title, subtitle, children, onClose, width = 'w-full max-w-2xl', noFooter = false, headerIcons = null, className = '', customFooter = null, hasActiveSubModal = false }: any) => {
     const { currentLanguage } = useStore();
     return (
-        <div className={`bg-white rounded-sm shadow-2xl flex flex-col max-h-[90vh] w-full ${width} relative animate-in fade-in zoom-in-95 duration-200 z-50 border border-gray-300 ${className}`}>
+        <div className={`bg-white rounded-sm shadow-2xl flex flex-col max-h-[90vh] ${width} relative animate-in fade-in zoom-in-95 duration-200 z-50 border border-gray-300 ${className}`}>
             {/* Smart Dimming Overlay for Multi-Level Modals */}
             {hasActiveSubModal && (
                 <div className="absolute inset-0 bg-black/40 z-[60] backdrop-blur-[2px] rounded-sm transition-all duration-300 flex items-center justify-center">

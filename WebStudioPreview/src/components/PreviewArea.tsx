@@ -610,6 +610,8 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
             img: '',
             status: d.status,
             type: d.type,
+            url: d.url,
+            openInNewTab: (d as any).openInNewTab,
             readMoreText: getItemTranslation(d, lang, 'readMoreText'),
             translations: d.translations,
             originalItem: d
@@ -802,7 +804,14 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                 if (isCircle) {
                                     // Circle mode: fixed centered avatar
                                     return (
-                                        <div className="w-full flex justify-center pt-6 pb-2">
+                                        <div
+                                            className={`w-full flex justify-center pt-6 pb-2 ${viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url ? 'cursor-pointer transition-opacity hover:opacity-80' : ''}`}
+                                            onClick={() => {
+                                                if (viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url) {
+                                                    window.open(item.url, item.openInNewTab ? '_blank' : '_self');
+                                                }
+                                            }}
+                                        >
                                             <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
                                                 {item.img ? (
                                                     <img src={item.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -818,7 +827,14 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
 
                                 const imgBorderClass = isRounded ? 'rounded-xl overflow-hidden' : 'overflow-hidden';
                                 return (
-                                    <div className={`${layout.img} bg-gray-100 relative flex-shrink-0 flex items-center justify-center ${imgBorderClass}`}>
+                                    <div
+                                        className={`${layout.img} bg-gray-100 relative flex-shrink-0 flex items-center justify-center ${imgBorderClass} ${viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url ? 'cursor-pointer transition-opacity hover:opacity-80' : ''}`}
+                                        onClick={() => {
+                                            if (viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url) {
+                                                window.open(item.url, item.openInNewTab ? '_blank' : '_self');
+                                            }
+                                        }}
+                                    >
                                         {item.img ? (
                                             <img src={item.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                         ) : (
@@ -1798,7 +1814,7 @@ export const PreviewArea: React.FC = () => {
                 {activePage ? (
                     <div className="min-h-[calc(100vh - 64px)] flex flex-col">
                         {activePage.containers.length > 0 ? (
-                            activePage.containers.map(container => (
+                            [...activePage.containers].sort((a, b) => a.order - b.order).map(container => (
                                 <ContainerWrapper
                                     key={container.id}
                                     container={container}

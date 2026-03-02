@@ -1042,7 +1042,8 @@ export const useStore = create<AppState>()(
             spContacts,
             spSliderItems,
             spContainers,
-            allImagesRaw
+            allImagesRaw,
+            documentsMetaData
           ] = await Promise.all([
             fetch(`${API}/smartPages`).then((r: any) => r.json()).catch(() => []),
             fetch(`${API}/topNavigation`).then((r: any) => r.json()).catch(() => []),
@@ -1056,15 +1057,39 @@ export const useStore = create<AppState>()(
             fetch(`${API}/contacts`).then((r: any) => r.json()).catch(() => []),
             fetch(`${API}/imageSlider`).then((r: any) => r.json()).catch(() => []),
             fetch(`${API}/containers`).then((r: any) => r.json()).catch(() => []),
-            fetchAllItems("/api/publishing-images", "images").catch(() => [])
+            fetchAllItems("/api/publishing-images", "images").catch(() => []),
+            fetch(`${API}/documentMetaData`).then((r: any) => r.json()).catch(() => [])
           ]);
 
+          const metaMap = (documentsMetaData || []).reduce((acc: any, meta: any) => {
+            const key = (meta.FileLeafRef || "").toLowerCase();
+            if (key) acc[key] = meta;
+            return acc;
+          }, {});
+
+          // 2️⃣ Merge spDocs + metadata
+          const mergedDocs = (spDocs || []).map((doc: any) => {
+            const key = (doc.name || "").toLowerCase();
+            const meta = metaMap[key] || {};
+
+            return {
+              ...doc,
+              ...meta
+            };
+          });
+
+          console.log("documentsMetaData", documentsMetaData);
           const filteredNav = spNav?.filter((item: any) => item?.Status === "Published");
           const filteredNews = spNews?.filter((item: any) => item?.Status === "Published");
           const filteredEvents = spEvents?.filter((item: any) => item?.Status === "Published");
-          const filteredDocs = spDocs?.filter((item: any) => item?.Status === "Published");
+          const filteredDocs = mergedDocs.filter(
+            (item: any) => item.DocStatus === "Published"
+          );
           const filteredContacts = spContacts?.filter((item: any) => item?.Status === "Published");
           const filteredSliderItems = spSliderItems?.filter((item: any) => item?.Status === "Published");
+          const filteredContainerItems = spContainerItems?.filter((item: any) => item?.Status === "Published");
+          const filteredContainers = spContainers?.filter((item: any) => item?.Status === "Published");
+          const filteredPages = spPages?.filter((item: any) => item?.PageStatus === "Published");
 
           /* ================= MEDIA BINDING ================= */
 
@@ -1199,7 +1224,7 @@ export const useStore = create<AppState>()(
 
           /* ================= CONTAINERS ================= */
 
-          const transformedContainers = spContainers.map((c: any) => {
+          const transformedContainers = filteredContainers.map((c: any) => {
             const extractImageName = (url: string): string => {
               if (!url || typeof url !== "string") return "";
 
@@ -1258,7 +1283,7 @@ export const useStore = create<AppState>()(
 
           /* ================= PAGES ================= */
 
-          const transformedPages = spPages.map((p: any) => ({
+          const transformedPages = filteredPages.map((p: any) => ({
             id: p.id,
             title: p.MultilingualTitle ? safeParse(p.MultilingualTitle) : { en: p.Title },
             slug: p.Slug || '/',
@@ -1269,7 +1294,7 @@ export const useStore = create<AppState>()(
             description: unescapeHtml(p.Description || ''),
             isHomePage: p.IsHomePage || false,
             seo: p.SEOConfig ? safeParse(p.SEOConfig) : undefined,
-            containers: containerMap[normalizeId(p.id)] || []
+            containers: (containerMap[normalizeId(p.id)] || []).sort((a, b) => a.order - b.order)
           }));
 
           /* ================= NAVIGATION ================= */
@@ -1340,22 +1365,31 @@ export const useStore = create<AppState>()(
           /* ================= DOCUMENTS ================= */
 
           const transformedDocs = filteredDocs.map((item: any) => ({
-            id: normalizeId(item.id),
-            title: item.Title,
-            name: item.Name,
-            status: item.DocStatus || 'Draft',
-            date: item.Modified || new Date().toISOString(),
-            type: item.DocType || 'PDF',
+            id: normalizeId(item.id || item.Id),
+            title: item.Title || item.name || "",
+            name: item.name || item.FileLeafRef || "",
+            status: item.DocStatus || "Draft",
+            date: item.Modified || item.Created || new Date().toISOString(),
+            type: item.DocType || item.DocIcon || "PDF",
             year: item.DocumentYear || new Date().getFullYear().toString(),
-            description: unescapeHtml(item.DocumentDescriptions || ''),
-            itemRank: item.ItemRank || 5,
-            sortOrder: item.SortOrder || 0,
-            url: resolveDocument(item) || item.FileRef || '',
-            imageUrl: resolveImage(item) || '',
-            imageName: item.ImageName || '',
+            description: unescapeHtml(item.DocumentDescriptions || ""),
+            itemRank: item.ItemRank ?? 5,
+            sortOrder: item.SortOrder ?? 0,
+            url: resolveDocument(item),
+            openInNewTab: item.OpenInNewTab || false,
+            imageUrl: resolveImage(item) || "",
+            imageName: item.ImageName || "",
             translations: cleanTranslations(item.Translations),
-            createdBy: item.AuthorName || item.Author?.Title || 'System',
-            modifiedBy: item.EditorName || item.Editor?.Title || 'System',
+            createdBy:
+              item.AuthorName ||
+              item.Author?.Title ||
+              item.AuthorLookupId ||
+              "System",
+            modifiedBy:
+              item.EditorName ||
+              item.Editor?.Title ||
+              item.EditorLookupId ||
+              "System",
             createdDate: item.Created,
             modifiedDate: item.Modified || item.Created
           }));
@@ -1380,7 +1414,7 @@ export const useStore = create<AppState>()(
 
           /* ================= CONTAINER ITEMS ================= */
 
-          const transformedContainerItems = spContainerItems.map((item: any) => ({
+          const transformedContainerItems = filteredContainerItems.map((item: any) => ({
             id: normalizeId(item.id),
             title: item.Title,
             status: item.Status || 'Draft',

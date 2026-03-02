@@ -26,7 +26,7 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
             <GenericModal
                 title={item.title}
                 onClose={onClose}
-                width="w-[800px]"
+                width="w-full max-w-[800px]"
                 noFooter={true}
                 customFooter={customFooter}
             >
