@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# DO NOT rewrite API calls
+RewriteRule ^api/ - [L]
+
+# DO NOT rewrite assets
+RewriteRule ^dist/ - [L]
+
+# Redirect all slugs to the HTML loader (page.php)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ page.php?page=$1 [L,QSA]

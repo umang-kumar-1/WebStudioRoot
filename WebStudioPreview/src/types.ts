@@ -253,6 +253,7 @@ export interface ImageItem {
     description?: string;
     title?: string;
     copyright?: string;
+    thumbnail?: string;
 }
 
 export interface ImageFolder {

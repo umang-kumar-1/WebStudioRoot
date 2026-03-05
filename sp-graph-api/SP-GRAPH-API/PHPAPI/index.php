@@ -3,13 +3,40 @@
 require_once __DIR__ . '/graph.php';
 
 // Load environment variables from .env file
+// if (file_exists(__DIR__ . '/.env')) {
+//     $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+//     foreach ($lines as $line) {
+//         if (strpos(trim($line), '#') === 0) continue;
+//         list($key, $value) = explode('=', $line, 2);
+//         $_ENV[trim($key)] = trim($value);
+//         putenv(trim($key) . '=' . trim($value));
+//     }
+// }
 if (file_exists(__DIR__ . '/.env')) {
     $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
     foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue;
+        $line = trim($line);
+
+        // Skip comments and empty lines
+        if ($line === '' || strpos($line, '#') === 0) {
+            continue;
+        }
+
+        // Skip invalid lines without "="
+        if (!str_contains($line, '=')) {
+            continue;
+        }
+
         list($key, $value) = explode('=', $line, 2);
-        $_ENV[trim($key)] = trim($value);
-        putenv(trim($key) . '=' . trim($value));
+
+        $key = trim($key);
+        $value = trim($value);
+
+        if ($key !== '') {
+            $_ENV[$key] = $value;
+            putenv("$key=$value");
+        }
     }
 }
 

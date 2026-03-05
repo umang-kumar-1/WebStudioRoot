@@ -4,7 +4,6 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { ModalType, ViewMode, ContainerType } from './types';
 import type { Page, SiteConfig, ThemeConfig, LanguageCode, MultilingualText, NavItem, NewsItem, EventItem, DocumentItem, ContainerItem, ContactItem, SliderItem, Container, ImageItem, ImageFolder, TranslationItem, PermissionGroup, PermissionUser, ContactQuery } from './types';
-import { API_BASE } from './services/apiTest';
 
 
 // Static UI Translations (Initial State)
@@ -1025,66 +1024,60 @@ export const useStore = create<AppState>()(
       loadFromApi: async () => {
         try {
           set({ isLoading: true });
-          console.log("🔄 Loading data from Node API...");
+          console.log("🔄 Loading data via Batch API...");
 
-          const API = "http://localhost:3001/api";
+          const API = "http://localhost:8000/api";
 
-          const [
-            spPages,
-            spNav,
-            spNews,
-            spEvents,
-            spDocs,
-            spSettings,
-            spTranslations,
-            spContainerItems,
-            spContactQueries,
-            spContacts,
-            spSliderItems,
-            spContainers,
-            allImagesRaw,
-            documentsMetaData
-          ] = await Promise.all([
-            fetch(`${API}/smartPages`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/topNavigation`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/news`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/events`).then((r: any) => r.json()).catch(() => []),
-            fetchAllItems("/api/publishing-documents", "documents").catch(() => []),
-            fetch(`${API}/globalSettings`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/translationDictionary`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/containerItems`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/contactQueries`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/contacts`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/imageSlider`).then((r: any) => r.json()).catch(() => []),
-            fetch(`${API}/containers`).then((r: any) => r.json()).catch(() => []),
-            fetchAllItems("/api/publishing-images", "images").catch(() => []),
-            fetch(`${API}/documentMetaData`).then((r: any) => r.json()).catch(() => [])
-          ]);
+          // 1️⃣ Fetch everything in one batch call
+          const batchData = await fetch(`${API}/batch`).then(r => r.json()).catch(() => ({}));
 
-          const metaMap = (documentsMetaData || []).reduce((acc: any, meta: any) => {
+          const {
+            smartPages: spPages = [],
+            topNavigation: spNav = [],
+            news: spNews = [],
+            events: spEvents = [],
+            globalSettings: spSettings = [],
+            translationDictionary: spTranslations = [],
+            containerItems: spContainerItems = [],
+            contactQueries: spContactQueries = [],
+            contacts: spContacts = [],
+            imageSlider: spSliderItems = [],
+            containers: spContainers = [],
+            allImagesRaw: rawImages = [],
+            spDocsRaw: rawDocs = [],
+            documentMetaData = []
+          } = batchData;
+
+          // 2️⃣ Process Images & Documents (Flat from API)
+          const allImagesRaw = rawImages.filter((i: any) => i.type !== "folder").map((i: any) => ({
+            ...i,
+            url: i.url || `http://localhost:8000/api/view-file/images/${i.id}`,
+            thumbnail: i.thumbnail || i.url || `http://localhost:8000/api/view-file/images/${i.id}`
+          }));
+
+          const spDocs = rawDocs.filter((i: any) => i.type !== "folder").map((i: any) => ({
+            ...i,
+            url: i.url || `http://localhost:8000/api/view-file/documents/${i.id}`,
+            thumbnail: i.thumbnail || i.url || `http://localhost:8000/api/view-file/documents/${i.id}`
+          }));
+
+          const metaMap = (documentMetaData || []).reduce((acc: any, meta: any) => {
             const key = (meta.FileLeafRef || "").toLowerCase();
             if (key) acc[key] = meta;
             return acc;
           }, {});
 
-          // 2️⃣ Merge spDocs + metadata
+          // 3️⃣ Merge spDocs + metadata
           const mergedDocs = (spDocs || []).map((doc: any) => {
             const key = (doc.name || "").toLowerCase();
             const meta = metaMap[key] || {};
-
-            return {
-              ...doc,
-              ...meta
-            };
+            return { ...doc, ...meta };
           });
 
-          console.log("documentsMetaData", documentsMetaData);
           const filteredNav = spNav?.filter((item: any) => item?.Status === "Published");
           const filteredNews = spNews?.filter((item: any) => item?.Status === "Published");
           const filteredEvents = spEvents?.filter((item: any) => item?.Status === "Published");
-          const filteredDocs = mergedDocs.filter(
-            (item: any) => item.DocStatus === "Published"
-          );
+          const filteredDocs = mergedDocs.filter((item: any) => item.DocStatus === "Published");
           const filteredContacts = spContacts?.filter((item: any) => item?.Status === "Published");
           const filteredSliderItems = spSliderItems?.filter((item: any) => item?.Status === "Published");
           const filteredContainerItems = spContainerItems?.filter((item: any) => item?.Status === "Published");
@@ -1095,47 +1088,33 @@ export const useStore = create<AppState>()(
 
           const { imageMap, documentMap } = buildMediaMaps(allImagesRaw, filteredDocs);
 
-          const resolveImage = (item: any): string => {
+          const resolveImage = (item: any, preferThumbnail: boolean = false): string => {
             if (!item) return "";
-
-            // 1️⃣ Try ImageName from imageMap
-            const imageName = typeof item.ImageName === "string"
-              ? item.ImageName.toLowerCase().trim()
-              : "";
-
-            if (imageName && imageMap?.[imageName]?.url) {
-              return imageMap[imageName].url;
+            const imageName = typeof item.ImageName === "string" ? item.ImageName.toLowerCase().trim() : "";
+            if (imageName && imageMap?.[imageName]) {
+              const img = imageMap[imageName];
+              return (preferThumbnail && img.thumbnail) ? img.thumbnail : img.url;
             }
 
-            // 2️⃣ Handle different ImageUrl shapes safely
             const imageUrl = item.ImageUrl;
-
             if (!imageUrl) return "";
-
-            if (typeof imageUrl === "string") {
-              return imageUrl;
-            }
-
+            if (typeof imageUrl === "string") return imageUrl;
             if (typeof imageUrl === "object") {
-              return (
-                imageUrl.Url ||
-                imageUrl.url ||
-                imageUrl?.value?.Url ||
-                imageUrl?.value?.url ||
-                ""
-              );
+              const url = imageUrl.Url || imageUrl.url || imageUrl?.value?.Url || imageUrl?.value?.url || "";
+              return url;
             }
-
             return "";
           };
 
-          const resolveDocument = (item: any) => {
-            const key = (item.Name || item.FileLeafRef || "").toLowerCase();
-            return documentMap[key]?.url || item.FileRef || item.url || "";
+          const resolveDocument = (item: any): string => {
+            if (!item) return "";
+            const docName = typeof item.Title === "string" ? item.Title.toLowerCase().trim() : "";
+            if (docName && documentMap?.[docName]?.url) return documentMap[docName].url;
+            return item.url || "";
           };
 
           const safeParse = (val: any, fallback: any = {}) => {
-            try { return val ? JSON.parse(val) : fallback; }
+            try { return val ? (typeof val === 'string' ? JSON.parse(val) : val) : fallback; }
             catch { return fallback; }
           };
 
@@ -1159,16 +1138,13 @@ export const useStore = create<AppState>()(
 
           if (spSettings.length > 0) {
             const themeItem = spSettings.find((i: any) => i.Title === 'THEME_CONFIG');
-            if (themeItem?.ConfigData)
-              loadedTheme = { ...DEFAULT_THEME, ...safeParse(themeItem.ConfigData) };
+            if (themeItem?.ConfigData) loadedTheme = { ...DEFAULT_THEME, ...safeParse(themeItem.ConfigData) };
 
             const siteItem = spSettings.find((i: any) => i.Title === 'SITE_CONFIG');
-            if (siteItem?.ConfigData)
-              loadedSiteConfig = { ...loadedSiteConfig, ...safeParse(siteItem.ConfigData) };
+            if (siteItem?.ConfigData) loadedSiteConfig = { ...loadedSiteConfig, ...safeParse(siteItem.ConfigData) };
 
             const labelsItem = spSettings.find((i: any) => i.Title === 'UI_LABELS');
-            if (labelsItem?.ConfigData)
-              loadedUiLabels = { ...loadedUiLabels, ...safeParse(labelsItem.ConfigData) };
+            if (labelsItem?.ConfigData) loadedUiLabels = { ...loadedUiLabels, ...safeParse(labelsItem.ConfigData) };
 
             const appItem = spSettings.find((i: any) => i.Title === 'APP_STATE');
             if (appItem?.ConfigData) {
@@ -1200,54 +1176,31 @@ export const useStore = create<AppState>()(
             });
           }
 
-          const loadedTranslationItems =
-            spTranslations?.length > 0
-              ? spTranslations.map((t: any) => ({
-                id: t.Title,
-                sourceList: t.SourceList || 'General',
-                original: t.Title,
-                translations: {
-                  en: t.EN || '',
-                  de: t.DE || '',
-                  fr: t.FR || '',
-                  es: t.ES || ''
-                },
-                lastUpdated: new Date().toISOString()
-              }))
-              : Object.keys(loadedUiLabels).map(key => ({
-                id: key,
-                sourceList: 'TranslationDictionary',
-                original: key,
-                translations: loadedUiLabels[key],
-                lastUpdated: new Date().toISOString()
-              }));
+          const loadedTranslationItems = spTranslations.map((t: any) => ({
+            id: t.Title,
+            sourceList: t.SourceList || 'General',
+            original: t.Title,
+            translations: { en: t.EN || '', de: t.DE || '', fr: t.FR || '', es: t.ES || '' },
+            lastUpdated: new Date().toISOString()
+          }));
 
           /* ================= CONTAINERS ================= */
 
           const transformedContainers = filteredContainers.map((c: any) => {
             const extractImageName = (url: string): string => {
               if (!url || typeof url !== "string") return "";
-
               try {
                 const decoded = decodeURIComponent(url);
                 const parts = decoded.split("/");
                 return parts[parts.length - 1].toLowerCase().trim();
-              } catch {
-                return "";
-              }
+              } catch { return ""; }
             };
             const parsedSettings = safeParse(c.Settings, {});
 
             if (parsedSettings?.bgImage) {
               const imageName = extractImageName(parsedSettings.bgImage);
-
-              const resolvedUrl = resolveImage({
-                ImageName: imageName
-              });
-
-              if (resolvedUrl) {
-                parsedSettings.bgImage = resolvedUrl;
-              }
+              const resolvedUrl = resolveImage({ ImageName: imageName });
+              if (resolvedUrl) parsedSettings.bgImage = resolvedUrl;
             }
             if (c.BtnEnabled !== undefined && c.BtnEnabled !== null) parsedSettings.btnEnabled = c.BtnEnabled;
             if (c.BtnName) parsedSettings.btnName = c.BtnName;
@@ -1321,7 +1274,7 @@ export const useStore = create<AppState>()(
             status: item.Status || 'Draft',
             publishDate: item.PublishDate || new Date().toISOString(),
             description: unescapeHtml(item.Description || ''),
-            imageUrl: resolveImage(item) || '',
+            imageUrl: resolveImage(item, true) || '',
             imageName: item.ImageName || '',
             readMore: {
               enabled: item.ReadMoreEnabled || false,
@@ -1347,7 +1300,7 @@ export const useStore = create<AppState>()(
             location: item.Location || '',
             category: item.Category || 'General',
             description: unescapeHtml(item.Description || ''),
-            imageUrl: resolveImage(item) || '',
+            imageUrl: resolveImage(item, true) || '',
             imageName: item.ImageName || '',
             readMore: {
               enabled: item.ReadMoreEnabled || false,
@@ -1377,19 +1330,11 @@ export const useStore = create<AppState>()(
             sortOrder: item.SortOrder ?? 0,
             url: resolveDocument(item),
             openInNewTab: item.OpenInNewTab || false,
-            imageUrl: resolveImage(item) || "",
+            imageUrl: resolveImage(item, true) || "",
             imageName: item.ImageName || "",
             translations: cleanTranslations(item.Translations),
-            createdBy:
-              item.AuthorName ||
-              item.Author?.Title ||
-              item.AuthorLookupId ||
-              "System",
-            modifiedBy:
-              item.EditorName ||
-              item.Editor?.Title ||
-              item.EditorLookupId ||
-              "System",
+            createdBy: item.AuthorName || item.Author?.Title || item.AuthorLookupId || "System",
+            modifiedBy: item.EditorName || item.Editor?.Title || item.EditorLookupId || "System",
             createdDate: item.Created,
             modifiedDate: item.Modified || item.Created
           }));
@@ -1398,10 +1343,10 @@ export const useStore = create<AppState>()(
 
           const transformedImages = allImagesRaw.map((img: any) => ({
             id: normalizeId(img.id),
-            name: img.FileName,
-            url: img.Url,
+            name: img.FileName || img.name,
+            url: img.url,
             folderId: img.AssetCategory || 'all',
-            title: img.Title || img.FileName,
+            title: img.Title || img.name,
             description: img.Description || '',
             copyright: img.CopyrightInfo || '',
             createdDate: img.Created,
@@ -1482,8 +1427,8 @@ export const useStore = create<AppState>()(
             sortOrder: item.SortOrder || 0,
             ctaText: item.CtaText || '',
             ctaUrl: item.CtaUrl || '',
-            imageUrl: resolveImage(item) || '',
-            imageName: item.ImageName || '',
+            imageUrl: resolveImage(item) || "",
+            imageName: item.ImageName || "",
             translations: cleanTranslations(item.Translations),
             createdDate: item.Created,
             modifiedDate: item.Modified || item.Created,
@@ -1545,6 +1490,46 @@ export const useStore = create<AppState>()(
           });
 
           await get().validateContainerTaggedItems();
+
+          // 4️⃣ Background Image Preloading (for instant navigation)
+          const preload = () => {
+            const containerUrls: string[] = [];
+            transformedPages.forEach((p: any) => {
+              p.containers?.forEach((c: any) => {
+                if (c.settings?.bgImage) containerUrls.push(c.settings.bgImage);
+                if (c.settings?.slides && Array.isArray(c.settings.slides)) {
+                  c.settings.slides.forEach((s: any) => {
+                    if (s.image) containerUrls.push(s.image);
+                    if (s.img) containerUrls.push(s.img);
+                  });
+                }
+              });
+            });
+
+            const allUrls = [
+              loadedSiteConfig?.logo?.url,
+              ...transformedSliderItems.map((i: any) => i.imageUrl),
+              ...transformedNews.map((i: any) => i.imageUrl),
+              ...transformedEvents.map((i: any) => i.imageUrl),
+              ...transformedContacts.map((i: any) => i.imageUrl),
+              ...transformedContainerItems.map((i: any) => i.imageUrl),
+              ...containerUrls
+            ].filter(Boolean);
+
+            const uniqueUrls = Array.from(new Set(allUrls));
+            console.log(`🚀 Preloading ${uniqueUrls.length} images in background...`);
+
+            uniqueUrls.forEach(url => {
+              const img = new Image();
+              img.src = url;
+            });
+          };
+
+          if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(() => preload());
+          } else {
+            setTimeout(preload, 2000);
+          }
 
           console.log("✅ Node API fully matched with SharePoint mapping + media binding");
 
@@ -1826,45 +1811,6 @@ export const getGlobalTranslation = (id: string, translationItems: any[], lang: 
   const item = translationItems?.find(t => t.id === id);
   if (!item) return fallback;
   return item.translations[lang] || item.translations.en || fallback;
-};
-const fetchAllItems = async (
-  endpoint: string,
-  driveType: "images" | "documents",
-  folderId: string | null = null
-): Promise<any[]> => {
-
-  const url = folderId
-    ? `${API_BASE}${endpoint}?folderId=${folderId}`
-    : `${API_BASE}${endpoint}`;
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    console.warn(`⚠️ ${url} returned ${response.status}`);
-    return [];
-  }
-
-  const data: any[] = await response.json();
-
-  let collectedItems: any[] = [];
-
-  for (const item of data) {
-    if (item.type === "folder") {
-      const childItems = await fetchAllItems(
-        endpoint,
-        driveType,
-        item.id
-      );
-      collectedItems = [...collectedItems, ...childItems];
-    } else {
-      collectedItems.push({
-        ...item,
-        url: `${API_BASE}/api/view-file/${driveType}/${item.id}` // ✅ fixed
-      });
-    }
-  }
-
-  return collectedItems;
 };
 
 const buildMediaMaps = (images: ImageItem[], documents: any[]) => {
