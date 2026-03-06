@@ -39,7 +39,7 @@ This is the PHP version of the SharePoint Graph API server.
 php -S localhost:8000 -t .
 ```
 
-Then access: `http://localhost:8000/api/health`
+Then access: `https://webstudio.hochhuth-consulting.de/PHPAPISHAREPOINT/api/health`
 
 ### Using Apache
 

@@ -1024,9 +1024,9 @@ export const useStore = create<AppState>()(
       loadFromApi: async () => {
         try {
           set({ isLoading: true });
-          console.log("🔄 Loading data via Batch API...");
-
-          const API = "http://localhost:8000/api";
+          // Using production domain directly
+          const API_ROOT = "https://webstudio.hochhuth-consulting.de/PHPAPISHAREPOINT";
+          const API = `${API_ROOT}/api`;
 
           // 1️⃣ Fetch everything in one batch call
           const batchData = await fetch(`${API}/batch`).then(r => r.json()).catch(() => ({}));
@@ -1051,14 +1051,14 @@ export const useStore = create<AppState>()(
           // 2️⃣ Process Images & Documents (Flat from API)
           const allImagesRaw = rawImages.filter((i: any) => i.type !== "folder").map((i: any) => ({
             ...i,
-            url: i.url || `http://localhost:8000/api/view-file/images/${i.id}`,
-            thumbnail: i.thumbnail || i.url || `http://localhost:8000/api/view-file/images/${i.id}`
+            url: i.url || `${API}/view-file/images/${i.id}`,
+            thumbnail: i.thumbnail || i.url || `${API}/view-file/images/${i.id}`
           }));
 
           const spDocs = rawDocs.filter((i: any) => i.type !== "folder").map((i: any) => ({
             ...i,
-            url: i.url || `http://localhost:8000/api/view-file/documents/${i.id}`,
-            thumbnail: i.thumbnail || i.url || `http://localhost:8000/api/view-file/documents/${i.id}`
+            url: i.url || `${API}/view-file/documents/${i.id}`,
+            thumbnail: i.thumbnail || i.url || `${API}/view-file/documents/${i.id}`
           }));
 
           const metaMap = (documentMetaData || []).reduce((acc: any, meta: any) => {

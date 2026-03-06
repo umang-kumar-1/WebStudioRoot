@@ -20,16 +20,19 @@ if (file_exists(__DIR__ . '/.env')) {
 
 /* ---------------- HEADERS ---------------- */
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Access-Control-Allow-Headers");
+header("Access-Control-Max-Age: 3600");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-/* ---------------- ROUTING FIX ---------------- */
-$path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
+/* ---------------- ROUTING ---------------- */
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+// Normalize: strip subdirectory and leading/trailing slashes
+$path = trim(str_replace('/PHPAPISHAREPOINT', '', $uri), '/');
 $method = $_SERVER['REQUEST_METHOD'];
 
 /* ---------------- RESPONSE HELPER ---------------- */

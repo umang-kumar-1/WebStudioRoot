@@ -1,1 +1,1 @@
-export const API_BASE: string = "http://localhost:8000";
+export const API_BASE: string = "https://webstudio.hochhuth-consulting.de/PHPAPISHAREPOINT";
