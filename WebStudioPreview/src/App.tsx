@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { useStore } from './store';
+import { useStore } from './store 2';
 import { PreviewArea } from './components/PreviewArea';
 import './App.css';
 

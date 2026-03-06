@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     useStore, getLocalizedText, getItemTranslation, getGlobalTranslation, getTranslation,
     GLOBAL_DEFAULT_IMAGE,
-} from '../store';
+} from '../store 2';
 import { ContainerType, ViewMode, ModalType } from '../types';
 import type { NavItem, ContactQuery, LanguageCode } from '../types';
 import {
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ReadMoreModal } from './modals/ReadMoreModal';
 import { EditTrigger } from './modals/SharedModals';
+import { VisualImage } from './VisualImage';
 
 // Mocked Editor Components since they are missing in Preview
 const NewsEditor = (_props: any) => null;
@@ -31,6 +32,9 @@ const stripHtml = (html: string) => {
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || "";
 };
+
+
+
 
 // --- GEOCHART COMPONENT ---
 const COUNTRY_ISO: Record<string, string> = {
@@ -160,7 +164,7 @@ interface ComponentRendererProps {
 }
 
 // --- RENDERER 1: HEADER / HERO ---
-const HeaderRenderer = ({ container, lang }: ComponentRendererProps) => {
+const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
 
     // Resolve color for a given color setting (site/black/white/custom)
@@ -231,10 +235,9 @@ const HeaderRenderer = ({ container, lang }: ComponentRendererProps) => {
                 {/* Image Side */}
                 <div className="w-full md:w-1/2 relative bg-gray-200">
                     {settings.bgImage ? (
-                        <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${settings.bgImage})` }}
-                        />
+                        <div className="absolute inset-0">
+                            <VisualImage src={settings.bgImage} alt="Hero background" priority={true} />
+                        </div>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                             <span className="text-sm font-bold uppercase tracking-widest">No Image Selected</span>
@@ -262,14 +265,19 @@ const HeaderRenderer = ({ container, lang }: ComponentRendererProps) => {
 
     return (
         <div className={`w-full relative flex flex-col justify-center py-20 px-6 ${textAlign}`} style={bgStyle}>
-            {settings.bgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0"></div>}
+            {settings.bgType === 'image' && settings.bgImage && (
+                <div className="absolute inset-0 z-0">
+                    <VisualImage src={settings.bgImage} alt="Background" priority={true} />
+                    <div className="absolute inset-0 bg-black/40"></div>
+                </div>
+            )}
             <ContentBlock />
         </div>
     );
-};
+});
 
 // --- RENDERER 2: SLIDER ---
-const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
+const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const tmplId = container.settings.templateId;
     const [current, setCurrent] = useState(0);
     const [editingSlide, setEditingSlide] = useState<any | null>(null);
@@ -282,32 +290,34 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
         .filter(Boolean) as any[];
 
     // Dynamic slides from tagged ImageSlider items, fallback to container slides
-    const dynamicSlides = taggedSliderItems.length > 0
-        ? taggedSliderItems.map((item: any) => {
-            const containerSlide = (container.settings.slides || []).find((s: any) => s.id === item.id) || {};
-            let layout = containerSlide.layout;
-            const sub = item.subtitle;
-            if (!layout && (sub === 'split_left_img' || sub === 'split_right_img' || sub === 'solid_color' || sub === 'text_overlay')) {
-                layout = sub;
-            }
-            if (!layout) layout = 'text_overlay';
+    const dynamicSlides = useMemo(() => {
+        return taggedSliderItems.length > 0
+            ? taggedSliderItems.map((item: any) => {
+                const containerSlide = (container.settings.slides || []).find((s: any) => s.id === item.id) || {};
+                let layout = containerSlide.layout;
+                const sub = item.subtitle;
+                if (!layout && (sub === 'split_left_img' || sub === 'split_right_img' || sub === 'solid_color' || sub === 'text_overlay')) {
+                    layout = sub;
+                }
+                if (!layout) layout = 'text_overlay';
 
-            return {
-                id: item.id,
-                title: getItemTranslation(item, lang, 'title') || item.title || '',
-                sub: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
-                subtitle: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
-                desc: getItemTranslation(item, lang, 'description') || item.description || '',
-                cta: getItemTranslation(item, lang, 'ctaText') || item.ctaText || '',
-                url: item.ctaUrl || containerSlide.url || '',
-                img: item.imageUrl || containerSlide.image || containerSlide.img || '',
-                image: item.imageUrl || containerSlide.image || containerSlide.img || '',
-                layout: layout,
-                adjustments: containerSlide.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 },
-                originalItem: item
-            };
-        })
-        : (container.settings.slides && container.settings.slides.length > 0 ? container.settings.slides.map((s: any) => ({ ...s, layout: s.layout || 'text_overlay', adjustments: s.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 } })) : []);
+                return {
+                    id: item.id,
+                    title: getItemTranslation(item, lang, 'title') || item.title || '',
+                    sub: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
+                    subtitle: getItemTranslation(item, lang, 'subtitle') || item.subtitle || '',
+                    desc: getItemTranslation(item, lang, 'description') || item.description || '',
+                    cta: getItemTranslation(item, lang, 'ctaText') || item.ctaText || '',
+                    url: item.ctaUrl || containerSlide.url || '',
+                    img: item.imageUrl || containerSlide.image || containerSlide.img || '',
+                    image: item.imageUrl || containerSlide.image || containerSlide.img || '',
+                    layout: layout,
+                    adjustments: containerSlide.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 },
+                    originalItem: item
+                };
+            })
+            : (container.settings.slides && container.settings.slides.length > 0 ? container.settings.slides.map((s: any) => ({ ...s, layout: s.layout || 'text_overlay', adjustments: s.adjustments || { zoom: 1, rotate: 0, brightness: 100, contrast: 100 } })) : []);
+    }, [taggedSliderItems, container.settings.slides, lang]);
 
     // Ensure current index is valid
     useEffect(() => {
@@ -396,7 +406,11 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
                         </div>
                         <div className="flex-1 w-full h-[400px] relative">
                             <div className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative">
-                                <img src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE} className="w-full h-full object-cover" />
+                                <VisualImage
+                                    src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
+                                    alt={getLocalizedText(activeSlide.title, lang)}
+                                    priority={true}
+                                />
                             </div>
                         </div>
                     </div>
@@ -455,9 +469,11 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
                         <div className="w-full h-full relative group">
                             {/* Image side based on layout */}
                             {activeSlide.img || activeSlide.image ? (
-                                <img
+                                <VisualImage
+                                    priority={true}
                                     src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
-                                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
+                                    alt={getLocalizedText(activeSlide.title, lang)}
+                                    className={`absolute inset-0 transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
                                     style={{
                                         left: activeSlide.layout === 'split_right_img' ? '50%' : '0',
                                         filter: activeSlide.adjustments ? `brightness(${activeSlide.adjustments.brightness}%) contrast(${activeSlide.adjustments.contrast}%)` : 'none',
@@ -556,10 +572,10 @@ const SliderRenderer = ({ container, lang }: ComponentRendererProps) => {
             </div>
         </div>
     );
-};
+});
 
 // --- RENDERER 3: DATA GRID ---
-const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
+const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings } = container;
     const {
         news, events, documents, pages, containerItems, contacts,
@@ -574,86 +590,85 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
     const [activeReadMoreItem, setActiveReadMoreItem] = useState<{ item: any, index: number } | null>(null);
     const [editingItem, setEditingItem] = useState<{ item: any, type: string } | null>(null);
 
-    let allItems: any[] = [];
+    const items = useMemo(() => {
+        let all: any[] = [];
+        if (settings.source === 'News') {
+            all = news.map(n => ({
+                id: n.id,
+                title: getItemTranslation(n, lang, 'title'),
+                desc: getItemTranslation(n, lang, 'description'),
+                date: n.publishDate,
+                img: n.imageUrl,
+                status: n.status,
+                readMoreText: getItemTranslation(n, lang, 'readMoreText'),
+                translations: n.translations,
+                originalItem: n
+            }));
+        } else if (settings.source === 'Event') {
+            all = events.map(e => ({
+                id: e.id,
+                title: getItemTranslation(e, lang, 'title'),
+                desc: getItemTranslation(e, lang, 'description'),
+                date: e.startDate,
+                endDate: e.endDate,
+                img: e.imageUrl,
+                status: e.status,
+                readMoreText: getItemTranslation(e, lang, 'readMoreText'),
+                translations: e.translations,
+                originalItem: e
+            }));
+        } else if (settings.source === 'Document') {
+            all = documents.map(d => ({
+                id: d.id,
+                title: getItemTranslation(d, lang, 'title'),
+                desc: getItemTranslation(d, lang, 'description'),
+                date: d.date,
+                img: '',
+                status: d.status,
+                type: d.type,
+                url: d.url,
+                openInNewTab: (d as any).openInNewTab,
+                readMoreText: getItemTranslation(d, lang, 'readMoreText'),
+                translations: d.translations,
+                originalItem: d
+            }));
+        } else if (settings.source === 'Smart Pages') {
+            all = pages.map(p => ({
+                id: p.id,
+                title: getLocalizedText(p.title, lang),
+                desc: p.description || '',
+                date: p.modifiedDate,
+                img: '',
+                status: p.status,
+                originalItem: p
+            }));
+        } else if (settings.source === 'Contacts' || settings.source === 'Contact') {
+            all = contacts.map(c => ({
+                id: c.id,
+                title: getItemTranslation(c, lang, 'fullName'),
+                desc: getItemTranslation(c, lang, 'description') || (getItemTranslation(c, lang, 'jobTitle') + (c.company ? ` - ${getItemTranslation(c, lang, 'company')} ` : '')),
+                date: c.createdDate,
+                img: c.imageUrl || GLOBAL_DEFAULT_IMAGE,
+                status: c.status,
+                readMoreText: '',
+                translations: c.translations,
+                originalItem: c
+            }));
+        } else if (settings.source === 'Container Items') {
+            all = containerItems.map(item => ({
+                id: item.id,
+                title: getItemTranslation(item, lang, 'title'),
+                desc: getItemTranslation(item, lang, 'description'),
+                date: item.createdDate || new Date().toISOString(),
+                img: item.imageUrl || '',
+                status: item.status,
+                originalItem: item
+            }));
+        }
 
-    if (settings.source === 'News') {
-        allItems = news.map(n => ({
-            id: n.id,
-            title: getItemTranslation(n, lang, 'title'),
-            desc: getItemTranslation(n, lang, 'description'),
-            date: n.publishDate,
-            img: n.imageUrl,
-            status: n.status,
-            readMoreText: getItemTranslation(n, lang, 'readMoreText'),
-            translations: n.translations,
-            originalItem: n
-        }));
-    } else if (settings.source === 'Event') {
-        allItems = events.map(e => ({
-            id: e.id,
-            title: getItemTranslation(e, lang, 'title'),
-            desc: getItemTranslation(e, lang, 'description'),
-            date: e.startDate,
-            endDate: e.endDate,
-            img: e.imageUrl,
-            status: e.status,
-            readMoreText: getItemTranslation(e, lang, 'readMoreText'),
-            translations: e.translations,
-            originalItem: e
-        }));
-    } else if (settings.source === 'Document') {
-        allItems = documents.map(d => ({
-            id: d.id,
-            title: getItemTranslation(d, lang, 'title'),
-            desc: getItemTranslation(d, lang, 'description'),
-            date: d.date,
-            img: '',
-            status: d.status,
-            type: d.type,
-            url: d.url,
-            openInNewTab: (d as any).openInNewTab,
-            readMoreText: getItemTranslation(d, lang, 'readMoreText'),
-            translations: d.translations,
-            originalItem: d
-        }));
-    } else if (settings.source === 'Smart Pages') {
-        allItems = pages.map(p => ({
-            id: p.id,
-            title: getLocalizedText(p.title, lang),
-            desc: p.description || '',
-            date: p.modifiedDate,
-            img: '',
-            status: p.status,
-            originalItem: p
-        }));
-    } else if (settings.source === 'Contacts' || settings.source === 'Contact') {
-        allItems = contacts.map(c => ({
-            id: c.id,
-            title: getItemTranslation(c, lang, 'fullName'),
-            desc: getItemTranslation(c, lang, 'description') || (getItemTranslation(c, lang, 'jobTitle') + (c.company ? ` - ${getItemTranslation(c, lang, 'company')} ` : '')),
-            date: c.createdDate,
-            img: c.imageUrl || GLOBAL_DEFAULT_IMAGE,
-            status: c.status,
-            readMoreText: '',
-            translations: c.translations,
-            originalItem: c
-        }));
-    } else if (settings.source === 'Container Items') {
-        allItems = containerItems.map(item => ({
-            id: item.id,
-            title: getItemTranslation(item, lang, 'title'),
-            desc: getItemTranslation(item, lang, 'description'),
-            date: item.createdDate || new Date().toISOString(),
-            img: item.imageUrl || '',
-            status: item.status,
-            originalItem: item
-        }));
-    } else {
-        allItems = [];
-    }
-
-    const taggedIds = settings.taggedItems || [];
-    const items = taggedIds.map((id: string) => allItems.find(i => i.id === id)).filter(Boolean);
+        const taggedIds = settings.taggedItems || [];
+        return taggedIds.map((id: string) => all.find(i => i.id === id)).filter(Boolean);
+    }, [settings.source, settings.taggedItems, lang, news, events, documents, pages, contacts, containerItems]);
 
     const gapSize = settings.spacing === 'compact' ? 1 : (settings.spacing === 'wide' ? 3 : 2);
     const spacingClass = settings.spacing === 'compact' ? 'gap-4' : (settings.spacing === 'wide' ? 'gap-12' : 'gap-8');
@@ -814,7 +829,7 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                         >
                                             <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
                                                 {item.img ? (
-                                                    <img src={item.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                    <VisualImage src={item.img} alt={item.title} priority={idx < 4} />
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
                                                         {getDocIcon(item.type)}
@@ -836,7 +851,7 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
                                         }}
                                     >
                                         {item.img ? (
-                                            <img src={item.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <VisualImage src={item.img} alt={item.title} priority={idx < 4} />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50 group-hover:bg-gray-100 transition-colors">
                                                 {getDocIcon(item.type)}
@@ -1016,10 +1031,10 @@ const DataGridRenderer = ({ container, lang }: ComponentRendererProps) => {
             }
         </div >
     );
-};
+});
 
 // --- RENDERER 4: CONTACT FORM (UPDATED) ---
-const ContactFormRenderer = ({ container, lang, pageTitle }: ComponentRendererProps) => {
+const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: ComponentRendererProps) => {
     const { addContactQuery } = useStore();
     const { settings } = container;
     const fields = settings.fields || [];
@@ -1313,10 +1328,10 @@ const ContactFormRenderer = ({ container, lang, pageTitle }: ComponentRendererPr
             </div>
         </div>
     );
-};
+});
 
 // --- RENDERER 5: TABLE VIEW ---
-const TableRenderer = ({ container, lang }: ComponentRendererProps) => {
+const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
     const columns = settings.columns || [];
     const rows = content.rows || [];
@@ -1457,10 +1472,10 @@ const TableRenderer = ({ container, lang }: ComponentRendererProps) => {
             </div>
         </div>
     );
-};
+});
 
 // --- RENDERER 6: MAP ---
-const MapRenderer = ({ container, lang }: ComponentRendererProps) => {
+const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
 
     return (
@@ -1497,10 +1512,10 @@ const MapRenderer = ({ container, lang }: ComponentRendererProps) => {
             </div>
         </div>
     );
-};
+});
 
 // --- MAIN WRAPPER ---
-const ContainerWrapper = ({ container, viewMode, lang, pageTitle }: { container: any, viewMode: ViewMode, lang: LanguageCode, pageTitle: string }) => {
+const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: { container: any, viewMode: ViewMode, lang: LanguageCode, pageTitle: string }) => {
     const { openModal, setEditingContainerId } = useStore();
 
     const handleEdit = () => {
@@ -1545,7 +1560,7 @@ const ContainerWrapper = ({ container, viewMode, lang, pageTitle }: { container:
             )}
         </div>
     );
-};
+});
 
 // --- RECURSIVE NAV ITEMS ---
 interface TopNavItemProps {
@@ -1554,19 +1569,19 @@ interface TopNavItemProps {
     onNavigate: (pageId: string) => void;
 }
 
-const TopNavDropdownItem: React.FC<TopNavItemProps> = ({ item, allItems, onNavigate }) => {
+const TopNavDropdownItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProps) => {
     const { currentLanguage } = useStore();
-    const children = allItems.filter(n => n.parentId === item.id && n.isVisible).sort((a, b) => a.order - b.order);
+    const children = useMemo(() => allItems.filter(n => n.parentId === item.id && n.isVisible).sort((a, b) => a.order - b.order), [item.id, allItems]);
     const hasChildren = children.length > 0;
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleClick = useCallback((e: React.MouseEvent) => {
         if (item.type === 'Page' && item.pageId) {
             e.preventDefault();
             onNavigate(item.pageId);
         }
-    };
+    }, [item.type, item.pageId, onNavigate]);
 
-    const localizedTitle = getItemTranslation(item, currentLanguage, 'title');
+    const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
     return (
         <div className="relative group/menuitem h-full flex items-center">
@@ -1593,21 +1608,21 @@ const TopNavDropdownItem: React.FC<TopNavItemProps> = ({ item, allItems, onNavig
             )}
         </div>
     );
-};
+});
 
-const TopNavSubItem: React.FC<TopNavItemProps> = ({ item, allItems, onNavigate }) => {
+const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProps) => {
     const { currentLanguage } = useStore();
-    const children = allItems.filter(n => n.parentId === item.id && n.isVisible).sort((a, b) => a.order - b.order);
+    const children = useMemo(() => allItems.filter(n => n.parentId === item.id && n.isVisible).sort((a, b) => a.order - b.order), [item.id, allItems]);
     const hasChildren = children.length > 0;
 
-    const handleClick = (e: React.MouseEvent) => {
+    const handleClick = useCallback((e: React.MouseEvent) => {
         if (item.type === 'Page' && item.pageId) {
             e.preventDefault();
             onNavigate(item.pageId);
         }
-    };
+    }, [item.type, item.pageId, onNavigate]);
 
-    const localizedTitle = getItemTranslation(item, currentLanguage, 'title');
+    const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
     return (
         <div className="relative group/submenu px-4 py-2 hover:bg-gray-100">
@@ -1633,7 +1648,7 @@ const TopNavSubItem: React.FC<TopNavItemProps> = ({ item, allItems, onNavigate }
             )}
         </div>
     );
-};
+});
 
 export const PreviewArea: React.FC = () => {
     const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading } = useStore();
@@ -1675,12 +1690,18 @@ export const PreviewArea: React.FC = () => {
         }
     }, [currentPageId]); // Primary dependency is currentPageId
 
-    const activePage = pages.find(p => p.id === currentPageId) || (pages.length > 0 ? pages[0] : null);
+    const activePage = useMemo(() => pages.find(p => p.id === currentPageId) || (pages.length > 0 ? pages[0] : null), [pages, currentPageId]);
+
+    const sortedContainers = useMemo(() => {
+        if (!activePage) return [];
+        return [...activePage.containers].sort((a, b) => a.order - b.order);
+    }, [activePage?.containers]);
+
     const footerConfig = siteConfig.footer;
 
     const siteUrl = window.location.origin;
 
-    const handleInternalLink = (e: React.MouseEvent, url: string) => {
+    const handleInternalLink = React.useCallback((e: React.MouseEvent, url: string) => {
         if (!url) return;
         // Normalize URL for check
         const normalizedUrl = url.startsWith('/') ? `${siteUrl}${url === '/' ? '' : url}` : url;
@@ -1692,26 +1713,25 @@ export const PreviewArea: React.FC = () => {
                 setCurrentPage(targetPage.id);
             }
         }
-    };
+    }, [pages, setCurrentPage, siteUrl]);
 
     // Resolve Background Color
-    const getFooterBg = () => {
+    const footerBg = useMemo(() => {
         switch (footerConfig.backgroundColor) {
             case 'white': return '#ffffff';
             case 'light-grey': return '#f3f4f6';
             case 'site-color': return 'var(--brand-dark)';
             default: return footerConfig.backgroundColor;
         }
-    };
+    }, [footerConfig.backgroundColor]);
 
-    const getFooterTextColor = () => {
-        const bg = getFooterBg();
-        if (bg === '#ffffff' || bg === '#f3f4f6') return 'var(--text-primary)';
+    const footerTextColor = useMemo(() => {
+        if (footerConfig.backgroundColor === 'white' || footerConfig.backgroundColor === 'light-grey') return 'var(--text-primary)';
         return '#ffffff';
-    };
+    }, [footerConfig.backgroundColor]);
 
     // Render Navigation Items based on visibility
-    const renderNavItems = () => (
+    const renderNavItems = React.useCallback(() => (
         <nav className={`flex items-center gap-6 ${siteConfig.navPosition === 'below_logo' ? `justify-${siteConfig.navAlignment}` : ''} w-full h-full`}>
             {siteConfig.navigation
                 .filter(n => n.parentId === 'root' && n.isVisible)
@@ -1720,25 +1740,27 @@ export const PreviewArea: React.FC = () => {
                     <TopNavDropdownItem key={link.id} item={link} allItems={siteConfig.navigation} onNavigate={setCurrentPage} />
                 ))}
         </nav>
-    );
+    ), [siteConfig.navigation, siteConfig.navPosition, siteConfig.navAlignment, setCurrentPage]);
 
 
-    const LogoComponent = () => (
+    const LogoComponent = useCallback(() => (
         <div className="flex-shrink-0 cursor-pointer" onClick={(e) => handleInternalLink(e as any, '/')}>
             {siteConfig.logo.url ? (
-                <img
-                    src={siteConfig.logo.url}
-                    alt={siteConfig.name}
-                    style={{ width: siteConfig.logo.width || '150px' }}
-                    className="object-contain"
-                />
+                <div style={{ width: siteConfig.logo.width || '150px' }} className="h-16">
+                    <VisualImage
+                        src={siteConfig.logo.url}
+                        alt={siteConfig.name}
+                        priority={true}
+                        objectFit="contain"
+                    />
+                </div>
             ) : (
                 <div className="font-bold text-xl tracking-tight" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-family-base)' }}>
                     {siteConfig.name}
                 </div>
             )}
         </div>
-    );
+    ), [siteConfig.logo, siteConfig.name, handleInternalLink]);
 
     if (isLoading) {
         return (
@@ -1813,8 +1835,8 @@ export const PreviewArea: React.FC = () => {
 
                 {activePage ? (
                     <div className="min-h-[calc(100vh - 64px)] flex flex-col">
-                        {activePage.containers.length > 0 ? (
-                            [...activePage.containers].sort((a, b) => a.order - b.order).map(container => (
+                        {sortedContainers.length > 0 ? (
+                            sortedContainers.map(container => (
                                 <ContainerWrapper
                                     key={container.id}
                                     container={container}
@@ -1831,8 +1853,8 @@ export const PreviewArea: React.FC = () => {
                         )}
                         <footer
                             style={{
-                                backgroundColor: getFooterBg(),
-                                color: getFooterTextColor(),
+                                backgroundColor: footerBg,
+                                color: footerTextColor,
                                 padding: '4rem 2rem',
                                 textAlign: footerConfig.template === 'Table' ? footerConfig.alignment : 'left'
                             }}

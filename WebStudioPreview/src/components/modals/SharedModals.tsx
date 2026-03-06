@@ -1,10 +1,10 @@
-
+import { memo } from 'react';
 import { createPortal } from 'react-dom';
 import { X, HelpCircle, Trash2, Info } from 'lucide-react';
-import { useStore, getTranslation } from '../../store';
+import { useStore, getTranslation } from '../../store 2';
 
 // --- EDIT TRIGGER COMPONENT ---
-export const EditTrigger = ({ labelKey, className = "", title = "Edit Translation" }: { labelKey: string, className?: string, title?: string }) => {
+export const EditTrigger = memo(({ labelKey, className = "", title = "Edit Translation" }: { labelKey: string, className?: string, title?: string }) => {
     const { openLabelEditor } = useStore();
     return (
         <div
@@ -18,7 +18,7 @@ export const EditTrigger = ({ labelKey, className = "", title = "Edit Translatio
             <Info className="w-3 h-3 transition-colors" style={{ color: 'var(--icon-color)' }} />
         </div>
     );
-};
+});
 
 // --- SHARED VERSION HISTORY MODAL (SINGLE SOURCE OF TRUTH) ---
 export const SharedVersionHistoryModal = ({ onClose, data }: { onClose: () => void, data?: any[] }) => {
@@ -81,7 +81,7 @@ export const SharedVersionHistoryModal = ({ onClose, data }: { onClose: () => vo
     );
 };
 
-export const GenericModal = ({ title, subtitle, children, onClose, width = 'w-full max-w-2xl', noFooter = false, headerIcons = null, className = '', customFooter = null, hasActiveSubModal = false }: any) => {
+export const GenericModal = memo(({ title, subtitle, children, onClose, width = 'w-full max-w-2xl', noFooter = false, headerIcons = null, className = '', customFooter = null, hasActiveSubModal = false }: any) => {
     const { currentLanguage } = useStore();
     return (
         <div className={`bg-white rounded-sm shadow-2xl flex flex-col max-h-[90vh] ${width} relative animate-in fade-in zoom-in-95 duration-200 z-50 border border-gray-300 ${className}`}>
@@ -121,7 +121,7 @@ export const GenericModal = ({ title, subtitle, children, onClose, width = 'w-fu
             )}
         </div>
     );
-};
+});
 
 export const ConfirmDeleteDialog = ({ title, message, onConfirm, onCancel }: any) => {
     const { currentLanguage } = useStore();
@@ -144,7 +144,7 @@ export const ConfirmDeleteDialog = ({ title, message, onConfirm, onCancel }: any
     );
 };
 
-export const TabButton = ({ active, label, onClick, icon: Icon }: any) => (
+export const TabButton = memo(({ active, label, onClick, icon: Icon }: any) => (
     <button
         onClick={onClick}
         className={`px-6 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${active ? 'border-[var(--primary-color)] text-[var(--primary-color)] bg-[var(--brand-light)]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
@@ -152,7 +152,7 @@ export const TabButton = ({ active, label, onClick, icon: Icon }: any) => (
         {Icon && <Icon className="w-4 h-4" />}
         {label}
     </button>
-);
+));
 
 export const HelpGuideModal = ({ onClose }: { onClose: () => void }) => {
     const { currentLanguage } = useStore();

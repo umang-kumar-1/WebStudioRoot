@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GenericModal } from './SharedModals';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { VisualImage } from '../VisualImage';
 
 export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
     // Resolve images: support both 'images' array and single 'img'/'imageUrl' property
@@ -34,10 +35,10 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
                     {/* Image Section */}
                     {images.length > 0 && (
                         <div className="w-full h-[400px] bg-gray-100 relative mb-8 rounded-sm overflow-hidden flex-shrink-0 group">
-                            <img
+                            <VisualImage
                                 src={images[currentImgIndex]}
-                                className="w-full h-full object-cover"
                                 alt={item.title}
+                                priority={true}
                             />
                             {images.length > 1 && (
                                 <>
