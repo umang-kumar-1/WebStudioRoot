@@ -281,9 +281,6 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
     // Standard Styles
     const bgStyle: React.CSSProperties = {
         backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'gray'),
-        backgroundImage: settings.bgType === 'image' && settings.bgImage ? `url(${settings.bgImage})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
         minHeight: settings.minHeight === 'full' ? '100vh' : '600px',
     };
 
@@ -538,12 +535,13 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                         </div>
                     ) : (
                         <>
-                            <div
-                                className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-                                style={{
-                                    backgroundImage: `url(${activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE})`,
-                                }}
-                            />
+                            <div className="absolute inset-0">
+                                <VisualImage
+                                    src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
+                                    alt={getLocalizedText(activeSlide.title, lang)}
+                                    className="scale-100"
+                                />
+                            </div>
                             {/* Dark gradient at bottom */}
                             <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/70 to-transparent" />
 
@@ -1215,13 +1213,16 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
     };
 
     return (
-        <div className="w-full py-16 px-6"
+        <div className="w-full py-16 px-6 relative overflow-hidden"
             style={{
                 backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'transparent'),
-                backgroundImage: settings.bgType === 'image' && settings.bgImage ? `url(${settings.bgImage})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
             }}>
+            {settings.bgType === 'image' && settings.bgImage && (
+                <div className="absolute inset-0 z-0">
+                    <VisualImage src={settings.bgImage} alt="Background" priority={true} />
+                    <div className="absolute inset-0 bg-black/40"></div>
+                </div>
+            )}
 
             <div className={`max-w-xl mx-auto bg-white p-10 shadow-xl border border-gray-200 rounded-sm relative ${settings.bgType === 'image' ? 'backdrop-blur-sm bg-white/95' : ''}`}>
 
