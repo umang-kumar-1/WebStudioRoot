@@ -1249,6 +1249,7 @@ export const useStore = create<AppState>()(
             modifiedDate: p.Modified || new Date().toISOString(),
             description: unescapeHtml(p.Description || ''),
             isHomePage: p.IsHomePage || false,
+            imageUrl: resolveImage(p, true) || '',
             seo: p.SEOConfig ? safeParse(p.SEOConfig) : undefined,
             containers: (containerMap[normalizeId(p.id)] || []).sort((a, b) => a.order - b.order)
           }));
@@ -1463,12 +1464,18 @@ export const useStore = create<AppState>()(
             }
           }
 
-          const defaultPageExists = transformedPages.find((p: any) => p.id === defaultPageId);
-          if (defaultPageExists && (!window.location.hash || window.location.hash === '#/' || window.location.hash === '#')) {
-            window.location.hash = defaultPageExists.slug;
-          }
+          // Logic for forcing hash removed to support path-based routing
 
           /* ================= FINAL STORE UPDATE ================= */
+
+          // Intelligently determine initial page ID to prevent Home redirect on refresh
+          const currentPath = window.location.pathname;
+          const pathPage = transformedPages.find((p: any) => p.slug === currentPath || (currentPath === '/' && p.slug === '/'));
+
+          const existingId = get().currentPageId;
+          const isExistingValid = transformedPages.some((p: any) => p.id === existingId);
+
+          const finalPageId = pathPage?.id || (isExistingValid ? existingId : (defaultPageId || '1'));
 
           set({
             pages: transformedPages,
@@ -1488,7 +1495,7 @@ export const useStore = create<AppState>()(
             themeConfig: loadedTheme,
             uiLabels: loadedUiLabels,
             translationItems: loadedTranslationItems,
-            currentPageId: defaultPageId || '1',
+            currentPageId: finalPageId,
             isLoading: false
           });
 

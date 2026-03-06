@@ -11,7 +11,7 @@ import {
     AlertTriangle, ChevronDown, MapPin, Mail, Phone,
     Linkedin, Facebook, Twitter, Instagram, ChevronLeft, ChevronRight,
     RefreshCw, FileText, FileSpreadsheet, Presentation, Link as LinkIcon, File,
-    Globe, Search, ArrowUp, ArrowDown, X, Info
+    Globe, Search, ArrowUp, ArrowDown, X, Info, Plus
 } from 'lucide-react';
 import { ReadMoreModal } from './modals/ReadMoreModal';
 import { EditTrigger } from './modals/SharedModals';
@@ -25,6 +25,7 @@ const ContactEditor = (_props: any) => null;
 const ContainerItemEditor = (_props: any) => null;
 const SliderItemEditor = (_props: any) => null;
 const SliderManager = (_props: any) => null;
+const SmartPageEditor = (_props: any) => null;
 
 const stripHtml = (html: string) => {
     if (!html) return "";
@@ -144,7 +145,6 @@ const renderRichText = (html: string, className?: string) => {
     return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
-// --- HELPER: DOCUMENT ICONS ---
 const getDocIcon = (type: string) => {
     switch (type) {
         case 'Word': return <FileText className="w-16 h-16 text-blue-600 opacity-80" />;
@@ -154,6 +154,30 @@ const getDocIcon = (type: string) => {
         case 'Presentations': return <Presentation className="w-16 h-16 text-orange-500 opacity-80" />;
         case 'Link': return <LinkIcon className="w-16 h-16 text-sky-500 opacity-80" />;
         default: return <File className="w-16 h-16 text-gray-400 opacity-80" />;
+    }
+};
+
+const getSocialIcon = (type: string) => {
+    const iconStyle = { color: '#ffffff', width: '20px', height: '20px' };
+    const containerClass = "w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm";
+    const bgStyle = { backgroundColor: '#254784' };
+
+    switch (type) {
+        case 'Facebook': return <div className={containerClass} style={bgStyle}><Facebook style={iconStyle} strokeWidth={2.5} /></div>;
+        case 'LinkedIn': return <div className={containerClass} style={bgStyle}><Linkedin style={iconStyle} strokeWidth={2.5} /></div>;
+        case 'Twitter': return <div className={containerClass} style={bgStyle}><Twitter style={iconStyle} strokeWidth={2.5} /></div>;
+        case 'Instagram': return <div className={containerClass} style={bgStyle}><Instagram style={iconStyle} strokeWidth={2.5} /></div>;
+        default: return <div className={containerClass} style={bgStyle}><Globe style={iconStyle} strokeWidth={2.5} /></div>;
+    }
+};
+
+const getContactIcon = (type: string) => {
+    const style = { color: '#254784' };
+    switch (type) {
+        case 'Email': return <Mail className="w-5 h-5" style={style} />;
+        case 'Phone': return <Phone className="w-5 h-5" style={style} />;
+        case 'Address': return <MapPin className="w-5 h-5" style={style} />;
+        default: return <Info className="w-5 h-5" style={style} />;
     }
 };
 
@@ -579,8 +603,8 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
     const { settings } = container;
     const {
         news, events, documents, pages, containerItems, contacts,
-        updateNews, updateEvent, updateDocument, updateContainerItem, updateContact,
-        deleteNews, deleteEvent, deleteDocument, deleteContainerItem, deleteContact,
+        updateNews, updateEvent, updateDocument, updateContainerItem, updateContact, updatePage,
+        deleteNews, deleteEvent, deleteDocument, deleteContainerItem, deleteContact, deletePage,
         setCurrentPage,
         viewMode
     } = useStore();
@@ -633,12 +657,12 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                 originalItem: d
             }));
         } else if (settings.source === 'Smart Pages') {
-            all = pages.map(p => ({
+            all = pages.filter(p => p.status === 'Published').map(p => ({
                 id: p.id,
                 title: getLocalizedText(p.title, lang),
                 desc: p.description || '',
                 date: p.modifiedDate,
-                img: '',
+                img: p.imageUrl || '',
                 status: p.status,
                 originalItem: p
             }));
@@ -807,9 +831,15 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                     return (
                         <div
                             key={item.id}
+                            onClick={() => {
+                                if (settings.source === 'Smart Pages') {
+                                    setCurrentPage(item.id);
+                                }
+                            }}
                             className={`bg-white ${(settings.border && settings.border.toLowerCase() !== 'none') ? 'border border-gray-200 shadow-sm' : ''} overflow-hidden group flex relative
                                 ${layout.card}
                                 ${borderClass} 
+                                ${settings.source === 'Smart Pages' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
                                 ${isSlider ? 'snap-start flex-shrink-0' : ''}`} style={{ width: isSlider ? cardWidth : 'auto', flex: isSlider ? `0 0 ${cardWidth}` : undefined }}>
                             {/* Image Area - Responsive & Conditional */}
                             {settings.imgPos !== 'none' && hasVisual && (() => {
@@ -875,7 +905,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setEditingItem({ item: item.originalItem, type: 'Contact' });
+                                                    setEditingItem({ item: item.originalItem, type: settings.source || 'News' });
                                                 }}
                                                 className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
                                             >
@@ -923,11 +953,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if (settings.source === 'Smart Pages') {
-                                                            setCurrentPage(item.id);
-                                                        } else {
-                                                            setEditingItem({ item: item.originalItem, type: settings.source });
-                                                        }
+                                                        setEditingItem({ item: item.originalItem, type: settings.source });
                                                     }}
                                                     className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
                                                 >
@@ -1026,6 +1052,16 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                         onSave={(updated: any) => { updateContainerItem(updated); setEditingItem(null); }}
                         onCancel={() => setEditingItem(null)}
                         onDelete={(id: string) => { deleteContainerItem(id); setEditingItem(null); }}
+                    />
+                )
+            }
+            {
+                editingItem && editingItem.type === 'Smart Pages' && (
+                    <SmartPageEditor
+                        item={editingItem.item}
+                        onSave={(updated: any) => { updatePage(updated); setEditingItem(null); }}
+                        onCancel={() => setEditingItem(null)}
+                        onDelete={(id: string) => { deletePage(id); setEditingItem(null); }}
                     />
                 )
             }
@@ -1650,8 +1686,68 @@ const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProp
     );
 });
 
+const LanguageSelector = () => {
+    const { currentLanguage, setLanguage, siteConfig } = useStore();
+    const languages = siteConfig.languages || ['en', 'de', 'fr', 'es'];
+    const [isOpen, setIsOpen] = useState(false);
+
+    const languageData: Record<string, { label: string }> = {
+        en: { label: 'English' },
+        de: { label: 'German' },
+        fr: { label: 'French' },
+        es: { label: 'Spanish' }
+    };
+
+    return (
+        <div className="relative flex-shrink-0">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 px-3 py-2 bg-white border border-[var(--primary-color)]/20 shadow-sm rounded-sm hover:border-[var(--primary-color)]/40 hover:bg-blue-50/50 transition-all text-gray-700 font-bold"
+                title="Change Language"
+            >
+                <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-[var(--primary-color)] rounded-full"></div>
+                    <span className="text-sm uppercase tracking-widest">{currentLanguage}</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-[var(--primary-color)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)}></div>
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-none z-[110] py-1 overflow-hidden">
+                        <div className="px-4 py-2 border-b border-gray-50 bg-gray-50/50 mb-1">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Language</span>
+                        </div>
+                        {languages.map((lang: string) => (
+                            <button
+                                key={lang}
+                                onClick={() => {
+                                    setLanguage(lang as LanguageCode);
+                                    setIsOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${currentLanguage === lang ? 'bg-blue-50/50 text-[var(--primary-color)] font-bold' : 'text-gray-700'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {currentLanguage === lang ? (
+                                        <div className="w-1.5 h-1.5 bg-[var(--primary-color)] rounded-full"></div>
+                                    ) : (
+                                        <div className="w-1.5 h-1.5 bg-transparent"></div>
+                                    )}
+                                    <span>{languageData[lang]?.label || lang.toUpperCase()}</span>
+                                </div>
+                                {currentLanguage === lang && <Check className="w-4 h-4 text-[var(--primary-color)]" />}
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 export const PreviewArea: React.FC = () => {
-    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading } = useStore();
+    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading, openModal } = useStore();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -1794,8 +1890,13 @@ export const PreviewArea: React.FC = () => {
                         {/* Case: Below Logo (Stacked) */}
                         {siteConfig.navPosition === 'below_logo' && (
                             <>
-                                <div className={`flex w-full justify-${siteConfig.logo.position}`}>
-                                    <LogoComponent />
+                                <div className="flex w-full items-center justify-between">
+                                    <div className={`flex justify-${siteConfig.logo.position === 'center' ? 'center' : siteConfig.logo.position} flex-1`}>
+                                        <LogoComponent />
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                        <LanguageSelector />
+                                    </div>
                                 </div>
                                 <div className="w-full border-t border-gray-100 pt-2">
                                     {renderNavItems()}
@@ -1821,13 +1922,15 @@ export const PreviewArea: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* 2. Nav Right of Page Section */}
-                                {/* This container pushes itself to the right via ml-auto if Logo isn't already taking that space */}
-                                {siteConfig.navPosition === 'right' && (
-                                    <div className={`flex items-center gap-6 hidden md:flex ${siteConfig.logo.position === 'right' ? 'mr-6' : 'ml-auto mr-6'}`}>
-                                        {renderNavItems()}
-                                    </div>
-                                )}
+                                {/* 2. Nav Right of Page Section & Tools */}
+                                <div className={`flex items-center ${siteConfig.logo.position === 'right' ? 'mr-auto' : 'ml-auto'}`}>
+                                    {siteConfig.navPosition === 'right' && (
+                                        <div className="hidden md:flex items-center gap-6 mr-8">
+                                            {renderNavItems()}
+                                        </div>
+                                    )}
+                                    <LanguageSelector />
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1889,28 +1992,172 @@ export const PreviewArea: React.FC = () => {
                             )}
 
                             {footerConfig.template === 'Corporate' && (
-                                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-8">
-                                    <div className="space-y-4">
-                                        <h4 className="font-bold" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
-                                        <div className="space-y-1 opacity-80" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
-                                            {footerConfig.contactInfo.address && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" style={{ color: 'var(--icon-color)' }} /> {footerConfig.contactInfo.address}</p>}
-                                            {footerConfig.contactInfo.email && <p className="flex items-center gap-2"><Mail className="w-4 h-4" style={{ color: 'var(--icon-color)' }} /> {footerConfig.contactInfo.email}</p>}
-                                            {footerConfig.contactInfo.phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" style={{ color: 'var(--icon-color)' }} /> {footerConfig.contactInfo.phone}</p>}
+                                <div className="max-w-7xl mx-auto py-12">
+                                    {/* Top Section: 3 Columns */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center mb-16 px-4">
+
+                                        {/* Column 1: Brand & Address (Flexible) */}
+                                        <div className="space-y-4 text-left">
+                                            <div className="space-y-1">
+                                                {(footerConfig.brandItems && footerConfig.brandItems.length > 0) ? (
+                                                    footerConfig.brandItems.map((item: any, idx: number) => (
+                                                        <div key={item.id}>
+                                                            <h4 className={idx === 0 ? "font-bold mb-1" : "opacity-80 leading-relaxed"} style={{
+                                                                fontSize: idx === 0 ? footerConfig.fontSettings.headingSize : footerConfig.fontSettings.subHeadingSize,
+                                                                color: '#254784'
+                                                            }}>
+                                                                {item.value || (idx === 0 ? siteConfig.name : '')}
+                                                            </h4>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-left">
+                                                        <h4 className="font-bold mb-2 text-[#254784]" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
+                                                        {footerConfig.contactInfo.address && (
+                                                            <p className="opacity-80 leading-relaxed text-[#254784]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                                {footerConfig.contactInfo.address}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <div className="mt-2 text-left">
+                                                    <button
+                                                        onClick={() => openModal(ModalType.FOOTER)}
+                                                        className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#ff9800] hover:bg-orange-50 transition-colors shadow-sm"
+                                                    >
+                                                        <Plus className="w-6 h-6" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Column 2: Social Links (Flexible) - WITH DESIGN LINES */}
+                                        <div className="flex flex-col items-center space-y-6">
+                                            <div className="flex items-center w-full gap-4">
+                                                <div className="h-px bg-[#254784]/20 flex-1"></div>
+                                                <div className="flex flex-wrap justify-center gap-3">
+                                                    {(footerConfig.socialItems && footerConfig.socialItems.length > 0) ? (
+                                                        footerConfig.socialItems.map((item: any) => (
+                                                            <a key={item.id} href={item.url || '#'} className="hover:opacity-80 transition-all hover:scale-110">
+                                                                {getSocialIcon(item.type)}
+                                                            </a>
+                                                        ))
+                                                    ) : (
+                                                        <div className="flex gap-4">
+                                                            {footerConfig.socialLinks.facebook && (
+                                                                <a href={footerConfig.socialLinks.facebook} className="hover:opacity-80 transition-opacity">
+                                                                    <div className="w-9 h-9 rounded-full bg-[#254784] flex items-center justify-center"><Facebook className="w-5 h-5 text-white" /></div>
+                                                                </a>
+                                                            )}
+                                                            {footerConfig.socialLinks.linkedin && (
+                                                                <a href={footerConfig.socialLinks.linkedin} className="hover:opacity-80 transition-opacity">
+                                                                    <div className="w-9 h-9 rounded-full bg-[#254784] flex items-center justify-center"><Linkedin className="w-5 h-5 text-white" /></div>
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="h-px bg-[#254784]/20 flex-1"></div>
+                                            </div>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <button
+                                                    onClick={() => openModal(ModalType.FOOTER)}
+                                                    className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#ff9800] hover:bg-orange-50 transition-colors shadow-sm"
+                                                >
+                                                    <Plus className="w-6 h-6" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Column 3: Contact Info (Flexible) */}
+                                        <div className="flex flex-col items-end space-y-6 text-right">
+                                            <div className="space-y-4">
+                                                {(footerConfig.contactItems && footerConfig.contactItems.length > 0) ? (
+                                                    footerConfig.contactItems.map((item: any) => (
+                                                        <div key={item.id} className="flex items-center justify-end gap-3" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <span>{item.value}</span>
+                                                            {getContactIcon(item.type)}
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {footerConfig.contactInfo.email && (
+                                                            <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                                <span>{footerConfig.contactInfo.email}</span>
+                                                                <Mail className="w-5 h-5" />
+                                                            </a>
+                                                        )}
+                                                        {footerConfig.contactInfo.phone && (
+                                                            <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                                <span>{footerConfig.contactInfo.phone}</span>
+                                                                <Phone className="w-5 h-5" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <button
+                                                    onClick={() => openModal(ModalType.FOOTER)}
+                                                    className="w-10 h-10 rounded-full border border-[#254784] bg-white flex items-center justify-center text-[#254784] hover:bg-blue-50 transition-colors shadow-sm"
+                                                >
+                                                    <Plus className="w-6 h-6" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                    <div className="flex gap-4">
-                                        {footerConfig.socialLinks.linkedin && <a href={footerConfig.socialLinks.linkedin} className="hover:opacity-80"><Linkedin className="w-6 h-6" style={{ color: 'var(--icon-color)' }} /></a>}
-                                        {footerConfig.socialLinks.facebook && <a href={footerConfig.socialLinks.facebook} className="hover:opacity-80"><Facebook className="w-6 h-6" style={{ color: 'var(--icon-color)' }} /></a>}
-                                        {footerConfig.socialLinks.twitter && <a href={footerConfig.socialLinks.twitter} className="hover:opacity-80"><Twitter className="w-6 h-6" style={{ color: 'var(--icon-color)' }} /></a>}
-                                        {footerConfig.socialLinks.instagram && <a href={footerConfig.socialLinks.instagram} className="hover:opacity-80"><Instagram className="w-6 h-6" style={{ color: 'var(--icon-color)' }} /></a>}
+
+                                    {/* Decorative Divider */}
+                                    <div className="h-px bg-gray-200 w-full mb-8"></div>
+
+                                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-4 h-min">
+                                        <div className="flex flex-col items-start gap-2">
+                                            <div className="flex items-center gap-1 text-sm text-[#254784]">
+                                                {(footerConfig?.bottomLinks && footerConfig.bottomLinks.length > 0) ? (
+                                                    footerConfig.bottomLinks.map((link: any, idx: number) => (
+                                                        <React.Fragment key={link.id}>
+                                                            <a
+                                                                href={link.url || '#'}
+                                                                className="hover:text-[#254784] transition-colors whitespace-nowrap px-1"
+                                                                onClick={(e) => handleInternalLink(e, link.url || '#')}
+                                                            >
+                                                                {link.label}
+                                                            </a>
+                                                            {idx < (footerConfig.bottomLinks?.length || 0) - 1 && <span className="opacity-40">/</span>}
+                                                        </React.Fragment>
+                                                    ))
+                                                ) : (
+                                                    <div className="flex items-center gap-2 opacity-60">
+                                                        <a href="#" className="hover:text-[#254784] transition-colors">{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
+                                                        <span>/</span>
+                                                        <a href="#" className="hover:text-[#254784] transition-colors">{getTranslation('LBL_TERMS_SERVICE', currentLanguage) || 'Terms of Service'}</a>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <button
+                                                    onClick={() => openModal(ModalType.FOOTER)}
+                                                    className="w-10 h-10 rounded-full border border-[#254784] bg-white flex items-center justify-center text-[#254784] hover:bg-blue-50 transition-colors shadow-sm"
+                                                >
+                                                    <Plus className="w-6 h-6" />
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col items-center md:items-end gap-2 h-min">
+                                            <div className="text-[#254784] text-sm font-medium opacity-80 h-min">
+                                                {getLocalizedText(footerConfig.copyright, currentLanguage)}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}
-
+                            {/* 
                             <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 text-center text-sm opacity-50">
                                 {getLocalizedText(footerConfig.copyright, currentLanguage)}
                                 {footerConfig.template === 'Corporate' && <div className="mt-2">{getGlobalTranslation('footer_sub', translationItems, currentLanguage, footerConfig.subFooterText)}</div>}
-                            </div>
+                            </div> */}
                         </footer>
                     </div>
                 ) : (

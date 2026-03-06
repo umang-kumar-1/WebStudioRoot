@@ -335,6 +335,7 @@ export interface Page {
     createdBy: string;
     modifiedBy: string;
     modifiedDate: string;
+    imageUrl?: string;
     containers: Container[];
     // New fields for Page Info Editor
     description?: string;
@@ -388,6 +389,10 @@ export interface SiteConfig {
             subHeadingSize: string;
         };
         columns: FooterColumn[]; // For Table View
+        brandItems?: { id: string; value: string }[];
+        socialItems?: { id: string; type: string; url: string }[];
+        contactItems?: { id: string; type: string; value: string }[];
+        bottomLinks?: { id: string; label: string; url: string }[];
         contactInfo: {
             address: string;
             email: string;
