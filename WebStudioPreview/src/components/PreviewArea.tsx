@@ -974,69 +974,66 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
                             {settings.useOldCardLayout ? (
                                 /* ---- OLD SITE CARD LAYOUT ---- */
-                                <div className="flex-1 flex flex-row items-start gap-4">
-                                    {/* Large faded number on the left */}
+                                <div className="flex items-start gap-4">
+
+                                    {/* Number */}
                                     <div
-                                        className="select-none flex-shrink-0 leading-none"
+                                        className="flex-shrink-0 select-none"
                                         style={{
-                                            fontSize: '3rem',
-                                            fontWeight: 700,
-                                            fontFamily: 'var(--font-family-secondary, sans-serif)',
-                                            color: '#e2e8f0', // Clean solid light gray for perfect contrast
+                                            fontSize: "48px",
+                                            fontWeight: 300,
+                                            color: "#d1d5db",
                                             lineHeight: 1,
-                                            minWidth: '3.5rem'
+                                            minWidth: "60px"
                                         }}
                                     >
-                                        {String(idx + 1).padStart(2, '0')}
+                                        {String(idx + 1).padStart(2, "0")}
                                     </div>
 
                                     {/* Content */}
-                                    <div className="flex flex-col flex-1 min-w-0 pr-4">
-                                        {/* Title — bold uppercase, designed to fit cleanly inside 2 lines structurally without truncation */}
-                                        <div className="flex items-start gap-2 mb-2">
-                                            <h3
-                                                className="font-bold uppercase group-hover:text-[var(--primary-color)] transition-colors flex-1"
-                                                style={{
-                                                    fontFamily: 'var(--font-family-secondary, sans-serif)',
-                                                    color: 'var(--heading-color, var(--primary-color))',
-                                                    fontSize: '15px', // Fixed hardcoded metric mimicking reference size exactly to enforce correct wrapping
-                                                    lineHeight: '1.4',
-                                                    minHeight: '2.8em', // Ensures baseline pushes the description to identical alignments across 1-line or 2-line content
-                                                    wordBreak: 'break-word',
-                                                    whiteSpace: 'normal',
-                                                    margin: 0
-                                                } as React.CSSProperties}
-                                            >
-                                                {item.title}
-                                            </h3>
-                                            {viewMode === ViewMode.EDIT && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setEditingItem({ item: item.originalItem, type: settings.source });
-                                                    }}
-                                                    className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
-                                                >
-                                                    <Pencil className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
+                                    <div className="flex flex-col flex-1">
 
-                                        {/* Description — justified text, matches reference image */}
+                                        {/* Title */}
+                                        <h3
+                                            className="font-bold uppercase mb-2"
+                                            style={{
+                                                color: "var(--primary-color)",
+                                                fontSize: "15px",
+                                                lineHeight: "1.3",
+                                                fontFamily: "var(--font-family-secondary)"
+                                            }}
+                                        >
+                                            {item.title}
+                                        </h3>
+
+                                        {/* Description */}
                                         {item.desc && (
                                             <p
-                                                className="flex-1"
+                                                className="mb-2"
                                                 style={{
-                                                    fontFamily: 'var(--font-family-base, sans-serif)',
-                                                    fontSize: 'var(--font-size-p, 0.75rem)',
-                                                    color: 'var(--text-secondary, #6b7280)',
-                                                    lineHeight: '1.6',
-                                                    textAlign: 'justify'
-                                                } as React.CSSProperties}
+                                                    fontSize: "13px",
+                                                    color: "#6b7280",
+                                                    lineHeight: "1.6",
+                                                    textAlign: "justify",
+                                                    fontFamily: "var(--font-family-base)"
+                                                }}
                                             >
                                                 {stripHtml(item.desc)}
                                             </p>
                                         )}
+
+                                        {/* Read More */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveReadMoreItem({ item, index: idx });
+                                            }}
+                                            className="text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-1"
+                                        >
+                                            Read More
+                                            <ChevronRight className="w-3 h-3" />
+                                        </button>
+
                                     </div>
                                 </div>
                             ) : (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle') ? (
