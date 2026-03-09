@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { GenericModal } from './SharedModals';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
-export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
+export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition, imgBorder }: any) => {
     // Resolve images: support both 'images' array and single 'img'/'imageUrl' property
     const images = item.images && item.images.length > 0
         ? item.images
@@ -14,6 +14,8 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
 
     const nextImg = () => setCurrentImgIndex((prev) => (prev + 1) % images.length);
     const prevImg = () => setCurrentImgIndex((prev) => (prev - 1 + images.length) % images.length);
+
+    const isCircleStyle = imgBorder === 'circle' || imgBorder === 'halfcircle';
 
     const customFooter = (
         <div className="flex justify-end">
@@ -32,30 +34,52 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
             >
                 <div className="flex flex-col">
                     {/* Image Section */}
-                    {images.length > 0 && (
-                        <div className="w-full h-[400px] bg-gray-100 relative mb-8 rounded-sm overflow-hidden flex-shrink-0 group">
-                            <img
-                                src={images[currentImgIndex]}
-                                className="w-full h-full object-cover"
-                                alt={item.title}
-                            />
-                            {images.length > 1 && (
-                                <>
-                                    <button onClick={prevImg} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100"><ChevronLeft className="w-5 h-5 text-gray-800" /></button>
-                                    <button onClick={nextImg} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100"><ChevronRight className="w-5 h-5 text-gray-800" /></button>
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-bold">
-                                        {currentImgIndex + 1} / {images.length}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                    {images.length > 0 && imagePosition !== 'none' && (
+                        isCircleStyle ? (
+                            /* Circle / Half-circle: centered circular avatar */
+                            <div className="flex flex-col items-center mb-6">
+                                <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg flex-shrink-0 bg-gray-100">
+                                    <img
+                                        src={images[currentImgIndex]}
+                                        className="w-full h-full object-cover"
+                                        alt={item.title}
+                                    />
+                                </div>
+                                {(item.jobTitle || item.company) && (
+                                    <p className="text-sm text-gray-500 font-medium mt-3 text-center">
+                                        {item.jobTitle}{item.jobTitle && item.company ? ` at ${item.company}` : item.company}
+                                    </p>
+                                )}
+                            </div>
+                        ) : (
+                            /* Standard: full-width rectangular image with optional carousel */
+                            <div className="w-full h-[400px] bg-gray-100 relative mb-8 rounded-sm overflow-hidden flex-shrink-0 group">
+                                <img
+                                    src={images[currentImgIndex]}
+                                    className="w-full h-full object-cover"
+                                    alt={item.title}
+                                />
+                                {images.length > 1 && (
+                                    <>
+                                        <button onClick={prevImg} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100">
+                                            <ChevronLeft className="w-5 h-5 text-gray-800" />
+                                        </button>
+                                        <button onClick={nextImg} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors shadow-sm opacity-0 group-hover:opacity-100">
+                                            <ChevronRight className="w-5 h-5 text-gray-800" />
+                                        </button>
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm font-bold">
+                                            {currentImgIndex + 1} / {images.length}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )
                     )}
 
                     {/* Content Section */}
                     <div className="space-y-6 px-1 pb-4">
-                        <div className="flex items-start justify-between gap-6">
+                        <div className="flex items-start gap-6">
                             <div className="space-y-3">
-                                <h2 className="text-3xl font-bold text-gray-900 leading-tight">{item.title}</h2>
                                 {item.date && (
                                     <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary-color)]">
                                         <Calendar className="w-4 h-4" />
@@ -69,11 +93,6 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index }: any) => {
                                     </div>
                                 )}
                             </div>
-                            {isNumbered && (
-                                <div className="text-6xl font-bold text-gray-100 font-mono select-none tracking-tighter">
-                                    {(index + 1).toString().padStart(2, '0')}
-                                </div>
-                            )}
                         </div>
 
                         <div

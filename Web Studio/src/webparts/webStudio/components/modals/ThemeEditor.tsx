@@ -25,7 +25,7 @@ const GROUPS = {
     vars: [
       '--font-import-url',
       '--font-family-base', '--font-family-secondary',
-      '--font-size-base',
+      '--font-size-base', '--font-size-p',
       '--heading-color',
       '--heading-h1-color', '--heading-h2-color', '--heading-h3-color',
       '--heading-h4-color', '--heading-h5-color', '--heading-h6-color',
@@ -90,7 +90,7 @@ const InternalPreview = ({ uiLabels, currentLanguage }: { uiLabels: any, current
       <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Typography</h3>
       <h1 style={{ fontFamily: 'var(--font-family-secondary)', color: 'var(--heading-h1-color)', fontSize: 'var(--font-size-h1)', fontWeight: 'var(--font-weight-bold)' }}>Heading 1</h1>
       <h2 style={{ fontFamily: 'var(--font-family-secondary)', color: 'var(--heading-h2-color)', fontSize: 'var(--font-size-h2)', fontWeight: 'var(--font-weight-bold)' }}>Heading 2</h2>
-      <p style={{ fontFamily: 'var(--font-family-base)', color: 'var(--text-primary)', marginTop: '0.5rem', lineHeight: '1.6' }}>
+      <p style={{ fontFamily: 'var(--font-family-base)', color: 'var(--text-primary)', fontSize: 'var(--font-size-p)', marginTop: '0.5rem', lineHeight: '1.6' }}>
         This is a sample paragraph showing <strong>bold text</strong> and standard body copy.
         It reacts to global font settings.
       </p>

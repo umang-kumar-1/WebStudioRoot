@@ -3,7 +3,7 @@
   "solution": {
     "name": "web-studio-client-side-solution",
     "id": "5139737a-210f-47a4-b1e8-bcb91fa0d02d",
-    "version": "1.0.0.15",
+    "version": "1.0.0.17",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
@@ -30,7 +30,7 @@
         "title": "web-studio Feature",
         "description": "The feature that activates elements of the web-studio solution.",
         "id": "0e00d426-edcf-4e4b-bc5f-054cda596226",
-        "version": "1.0.0.15"
+        "version": "1.0.0.17"
       }
     ]
   },

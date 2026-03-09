@@ -227,7 +227,7 @@ export const DEFAULT_THEME: ThemeConfig = {
   '--edit-icon-hover-bg': '#1d4ed8',
 };
 
-export const GLOBAL_DEFAULT_IMAGE = 'https://hochhuth-consulting.de//images/logo.png';
+export const GLOBAL_DEFAULT_IMAGE = '';
 
 const unescapeHtml = (str: string): string => {
   if (!str) return '';

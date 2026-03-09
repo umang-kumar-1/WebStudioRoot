@@ -1,4 +1,5 @@
 /********* SPFX OVERRIDE CSS   *********/
+
 .CanvasComponent.LCS .grid {
   padding: 0 !important;
 }
@@ -27,6 +28,7 @@ div#SuiteNavPlaceholder {
 }
 
 /* --- Remove the SharePoint inner padding that keeps content boxed --- */
+
 div[data-automation-id="CanvasZone"] {
   width: 100vw !important;
   max-width: 100vw !important;
@@ -35,6 +37,7 @@ div[data-automation-id="CanvasZone"] {
 }
 
 /* --- Center your web part content --- */
+
 #workbenchPageContent,
 .CanvasZone,
 .ControlZone {
@@ -47,6 +50,7 @@ div[data-automation-id="CanvasZone"] {
 }
 
 /* --- Fix top offset issue in Workbench --- */
+
 #workbenchPageContent {
   padding-top: 0 !important;
   margin-top: 0 !important;
@@ -55,6 +59,7 @@ div[data-automation-id="CanvasZone"] {
 }
 
 /* --- Optional: remove extra canvas chrome for full width view --- */
+
 .CanvasZone--alignment,
 .CanvasZone--section,
 .CanvasSection {
@@ -62,6 +67,7 @@ div[data-automation-id="CanvasZone"] {
 }
 
 /* --- Hide SharePoint chrome (optional for full app look) --- */
+
 #spSiteHeader,
 #spCommandBar,
 .CanvasZone--header,
@@ -70,13 +76,11 @@ div#spTopPlaceholder {
   display: none !important;
 }
 
-
 .CanvasZoneSectionContainer[data-automation-id='CanvasZone-SectionContainer'] {
   max-width: 100% !important;
   width: 100% !important;
   padding: 0 !important;
 }
-
 
 .CanvasSection[data-automation-id="CanvasSection"] {
   padding: 0;
@@ -87,6 +91,7 @@ div#spTopPlaceholder {
 }
 
 /* --- Global Typography --- */
+
 :root {
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);

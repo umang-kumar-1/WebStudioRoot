@@ -463,7 +463,7 @@ const DataGridConfigPanel = ({ config, setConfig }: { config: DataGridConfigType
                 </div>
 
                 <div className="pt-4">
-                    <VisualToggle label="Image Border Section" value={config.border} onChange={(v: any) => updateConfig('border', v)} options={[{ value: 'sharp', label: 'Sharp Corners', icon: Square }, { value: 'rounded', label: 'Rounded Corners', icon: Square }, { value: 'circle', label: 'Circle', icon: Circle }]} />
+                    <VisualToggle label="Image Border Section" value={config.border} onChange={(v: any) => updateConfig('border', v)} options={[{ value: 'sharp', label: 'Sharp Corners', icon: Square }, { value: 'rounded', label: 'Rounded Corners', icon: Square }, { value: 'circle', label: 'Circle', icon: Circle }, { value: 'halfcircle', label: 'Half Circle', icon: Circle }]} />
                 </div>
 
             </div>

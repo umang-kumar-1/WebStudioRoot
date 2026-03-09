@@ -259,8 +259,8 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                 {/* Image Side */}
                 <div className="w-full md:w-1/2 relative bg-gray-200">
                     {settings.bgImage ? (
-                        <div className="absolute inset-0">
-                            <VisualImage src={settings.bgImage} alt="Hero background" priority={true} />
+                        <div className="absolute inset-0 z-0">
+                            <VisualImage src={settings.bgImage} alt="Hero background" priority={true} className="w-full h-full object-cover object-center" />
                         </div>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
@@ -288,7 +288,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
         <div className={`w-full relative flex flex-col justify-center py-20 px-6 ${textAlign}`} style={bgStyle}>
             {settings.bgType === 'image' && settings.bgImage && (
                 <div className="absolute inset-0 z-0">
-                    <VisualImage src={settings.bgImage} alt="Background" priority={true} />
+                    <VisualImage src={settings.bgImage} alt="Background" priority={true} className="w-full h-full object-cover object-center" />
                     <div className="absolute inset-0 bg-black/40"></div>
                 </div>
             )}
@@ -353,13 +353,18 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
         ? (getLocalizedText(container.settings.subheading, lang) || container.settings.subheading)
         : '';
 
-    const next = () => setCurrent((p) => dynamicSlides.length ? (p + 1) % dynamicSlides.length : 0);
-    const prev = () => setCurrent((p) => dynamicSlides.length ? (p - 1 + dynamicSlides.length) % dynamicSlides.length : 0);
+    const next = () => setCurrent((p) => Math.min(p + 1, dynamicSlides.length - 1));
+    const prev = () => setCurrent((p) => Math.max(p - 1, 0));
+
+    const canPrev = current > 0;
+    const canNext = current < dynamicSlides.length - 1;
 
     // Auto Play Logic
     useEffect(() => {
         if (container.settings.autoplay && dynamicSlides.length > 1) {
-            const timer = setInterval(next, (container.settings.speed || 5) * 1000);
+            const timer = setInterval(() => {
+                setCurrent((p) => (p + 1) % dynamicSlides.length);
+            }, (container.settings.speed || 5) * 1000);
             return () => clearInterval(timer);
         }
     }, [container.settings.autoplay, container.settings.speed, dynamicSlides.length]);
@@ -421,8 +426,20 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                 <button className="px-6 py-2 bg-[var(--primary-color)] text-white font-bold rounded-sm shadow-sm">{getLocalizedText(activeSlide.cta, lang)}</button>
                             )}
                             <div className="flex gap-2 pt-4">
-                                <button onClick={prev} className="p-2 bg-gray-200 rounded-sm hover:bg-gray-300"><ChevronLeft className="w-4 h-4" style={{ color: 'var(--icon-color)' }} /></button>
-                                <button onClick={next} className="p-2 bg-[var(--primary-color)] text-white rounded-sm hover:opacity-90"><ChevronRight className="w-4 h-4" /></button>
+                                <button
+                                    onClick={prev}
+                                    disabled={!canPrev}
+                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={next}
+                                    disabled={!canNext}
+                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                         <div className="flex-1 w-full h-[400px] relative">
@@ -431,12 +448,13 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                     src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
                                     alt={getLocalizedText(activeSlide.title, lang)}
                                     priority={true}
+                                    className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
                     </div>
                     {/* Slide nav tabs */}
-                    <div className="flex gap-6 mt-8 border-t border-gray-100 pt-4">
+                    <div className="flex gap-6 mt-8 justify-between pt-4">
                         {dynamicSlides.map((slide: any, idx: number) => (
                             <button
                                 key={idx}
@@ -478,9 +496,10 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                 {container.settings.arrows !== false && (
                     <button
                         onClick={prev}
-                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white border border-gray-200 shadow rounded-full hover:bg-gray-50 transition-colors z-10 ml-2"
+                        disabled={!canPrev}
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 ml-2 ${canPrev ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'}`}
                     >
-                        <ChevronLeft className="w-5 h-5" style={{ color: 'var(--primary-color)' }} />
+                        <ChevronLeft className="w-5 h-5" />
                     </button>
                 )}
 
@@ -494,7 +513,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                     priority={true}
                                     src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
                                     alt={getLocalizedText(activeSlide.title, lang)}
-                                    className={`absolute inset-0 transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
+                                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activeSlide.layout === 'split_left_img' || activeSlide.layout === 'split_right_img' ? 'w-1/2' : 'w-full'}`}
                                     style={{
                                         left: activeSlide.layout === 'split_right_img' ? '50%' : '0',
                                         filter: activeSlide.adjustments ? `brightness(${activeSlide.adjustments.brightness}%) contrast(${activeSlide.adjustments.contrast}%)` : 'none',
@@ -539,7 +558,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                 <VisualImage
                                     src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
                                     alt={getLocalizedText(activeSlide.title, lang)}
-                                    className="scale-100"
+                                    className="w-full h-full object-cover transition-all duration-700 scale-100"
                                 />
                             </div>
                             {/* Dark gradient at bottom */}
@@ -586,9 +605,10 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                 {container.settings.arrows !== false && (
                     <button
                         onClick={next}
-                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-white border border-gray-200 shadow rounded-full hover:bg-gray-50 transition-colors z-10 mr-2"
+                        disabled={!canNext}
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 mr-2 ${canNext ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'}`}
                     >
-                        <ChevronRight className="w-5 h-5" style={{ color: 'var(--primary-color)' }} />
+                        <ChevronRight className="w-5 h-5" />
                     </button>
                 )}
             </div>
@@ -611,6 +631,16 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
     const scrollContainer = useRef<HTMLDivElement>(null);
     const [activeReadMoreItem, setActiveReadMoreItem] = useState<{ item: any, index: number } | null>(null);
     const [editingItem, setEditingItem] = useState<{ item: any, type: string } | null>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const checkScroll = useCallback(() => {
+        if (scrollContainer.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainer.current;
+            setCanScrollLeft(scrollLeft > 10);
+            setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+        }
+    }, []);
 
     const items = useMemo(() => {
         let all: any[] = [];
@@ -668,7 +698,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
             all = contacts.map(c => ({
                 id: c.id,
                 title: getItemTranslation(c, lang, 'fullName'),
-                desc: getItemTranslation(c, lang, 'description') || (getItemTranslation(c, lang, 'jobTitle') + (c.company ? ` - ${getItemTranslation(c, lang, 'company')} ` : '')),
+                jobTitle: getItemTranslation(c, lang, 'jobTitle') || '',
+                company: getItemTranslation(c, lang, 'company') || (c as any).company || '',
+                desc: getItemTranslation(c, lang, 'description') || '',
                 date: c.createdDate,
                 img: c.imageUrl || GLOBAL_DEFAULT_IMAGE,
                 status: c.status,
@@ -691,6 +723,20 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
         const taggedIds = settings.taggedItems || [];
         return taggedIds.map((id: string) => all.find(i => i.id === id)).filter(Boolean);
     }, [settings.source, settings.taggedItems, lang, news, events, documents, pages, contacts, containerItems]);
+
+    useEffect(() => {
+        const el = scrollContainer.current;
+        if (isSlider && el) {
+            el.addEventListener('scroll', checkScroll);
+            checkScroll();
+            // Initial check with small delay to ensure rendering is complete
+            const timer = setTimeout(checkScroll, 100);
+            return () => {
+                el.removeEventListener('scroll', checkScroll);
+                clearTimeout(timer);
+            };
+        }
+    }, [isSlider, items, checkScroll]);
 
     const gapSize = settings.spacing === 'compact' ? 1 : (settings.spacing === 'wide' ? 3 : 2);
     const spacingClass = settings.spacing === 'compact' ? 'gap-4' : (settings.spacing === 'wide' ? 'gap-12' : 'gap-8');
@@ -772,7 +818,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
     const layout = getLayoutClasses();
 
     return (
-        <div className={`py-16 px-6 max-w-7xl mx-auto relative group/slider`} style={bgStyle}>
+        <div className={`py-16 px-6 ${settings.useOldCardLayout ? 'w-full max-w-[1536px]' : 'max-w-7xl'} mx-auto relative group/slider`} style={bgStyle}>
 
             <div className={`mb-10 border-b border-gray-100 pb-4`}>
                 <div className={`flex items-end ${settings.align === 'center' ? 'justify-center relative' :
@@ -801,10 +847,18 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
                     {isSlider && items.length > cols && (
                         <div className={`flex gap-2 ${settings.align === 'center' ? 'absolute right-0' : ''}`}>
-                            <button onClick={() => scroll('left')} className="w-8 h-8 flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-sm transition-colors shadow-sm">
+                            <button
+                                onClick={() => scroll('left')}
+                                disabled={!canScrollLeft}
+                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollLeft ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
-                            <button onClick={() => scroll('right')} className="w-8 h-8 flex items-center justify-center bg-[var(--primary-color)] text-white hover:opacity-90 rounded-sm transition-colors shadow-sm">
+                            <button
+                                onClick={() => scroll('right')}
+                                disabled={!canScrollRight}
+                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollRight ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            >
                                 <ChevronRight className="w-5 h-5" />
                             </button>
                         </div>
@@ -816,7 +870,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                 ref={scrollContainer}
                 className={`
                 ${isSlider ? 'flex flex-nowrap overflow-x-hidden snap-x snap-mandatory' : 'grid'} 
-                ${spacingClass}
+                ${settings.useOldCardLayout ? 'gap-4 gap-y-12' : spacingClass}
 `}
                 style={{
                     gridTemplateColumns: isSlider ? undefined : `repeat(${cols}, minmax(0, 1fr))`,
@@ -834,30 +888,56 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                     setCurrentPage(item.id);
                                 }
                             }}
-                            className={`bg-white ${(settings.border && settings.border.toLowerCase() !== 'none') ? 'border border-gray-200 shadow-sm' : ''} overflow-hidden group flex relative
+                            className={`${settings.useOldCardLayout ? 'bg-transparent' : 'bg-white'} ${(settings.border && settings.border.toLowerCase() !== 'none') && !settings.useOldCardLayout ? 'border border-gray-200 shadow-sm' : ''} group flex relative
                                 ${layout.card}
                                 ${borderClass} 
                                 ${settings.source === 'Smart Pages' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
-                                ${isSlider ? 'snap-start flex-shrink-0' : ''}`} style={{ width: isSlider ? cardWidth : 'auto', flex: isSlider ? `0 0 ${cardWidth}` : undefined }}>
+                                ${isSlider ? 'snap-start flex-shrink-0' : ''}
+                                ${settings.useOldCardLayout ? '' : settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? 'overflow-visible' : 'overflow-hidden'}`}
+                            style={{
+                                width: isSlider ? cardWidth : 'auto',
+                                flex: isSlider ? `0 0 ${cardWidth}` : undefined,
+                                marginTop: settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? '3.5rem' : undefined,
+                                borderLeft: settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? '3px solid var(--primary-color)' : undefined
+                            }}>
                             {/* Image Area - Responsive & Conditional */}
                             {settings.imgPos !== 'none' && hasVisual && (() => {
                                 const isCircle = settings.imgBorder === 'circle' || settings.imgBorder === 'Circle';
+                                const isHalfCircle = settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle';
                                 const isRounded = settings.imgBorder === 'rounded' || settings.imgBorder === 'Rounded';
 
                                 if (isCircle) {
                                     // Circle mode: fixed centered avatar
                                     return (
+                                        <div className="w-full flex justify-center pt-6 pb-2">
+                                            <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
+                                                {item.img ? (
+                                                    <VisualImage src={item.img} alt={item.title} priority={idx < 4} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                                                        {getDocIcon(item.type)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                if (isHalfCircle) {
+                                    // Half Circle mode: circular avatar absolutely positioned above the card top border
+                                    return (
                                         <div
-                                            className={`w-full flex justify-center pt-6 pb-2 ${viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url ? 'cursor-pointer transition-opacity hover:opacity-80' : ''}`}
+                                            className={`absolute left-0 right-0 flex justify-center ${viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url ? 'cursor-pointer transition-opacity hover:opacity-80' : ''}`}
                                             onClick={() => {
                                                 if (viewMode === ViewMode.PREVIEW && settings.source === 'Document' && item.url) {
                                                     window.open(item.url, item.openInNewTab ? '_blank' : '_self');
                                                 }
                                             }}
+                                            style={{ top: '-3.5rem' }}
                                         >
-                                            <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-4 border-white shadow-lg">
                                                 {item.img ? (
-                                                    <VisualImage src={item.img} alt={item.title} priority={idx < 4} />
+                                                    <VisualImage src={item.img} alt={item.title} priority={idx < 4} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 ) : (
                                                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
                                                         {getDocIcon(item.type)}
@@ -879,7 +959,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                         }}
                                     >
                                         {item.img ? (
-                                            <VisualImage src={item.img} alt={item.title} priority={idx < 4} />
+                                            <VisualImage src={item.img} alt={item.title} priority={idx < 4} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50 group-hover:bg-gray-100 transition-colors">
                                                 {getDocIcon(item.type)}
@@ -892,10 +972,77 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
                             {/* No absolute pencil here, we'll put it inline for contacts or title-based items */}
 
-                            {(settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle') ? (
+                            {settings.useOldCardLayout ? (
+                                /* ---- OLD SITE CARD LAYOUT ---- */
+                                <div className="flex-1 flex flex-row items-start gap-4">
+                                    {/* Large faded number on the left */}
+                                    <div
+                                        className="select-none flex-shrink-0 leading-none"
+                                        style={{
+                                            fontSize: '3rem',
+                                            fontWeight: 700,
+                                            fontFamily: 'var(--font-family-secondary, sans-serif)',
+                                            color: '#e2e8f0', // Clean solid light gray for perfect contrast
+                                            lineHeight: 1,
+                                            minWidth: '3.5rem'
+                                        }}
+                                    >
+                                        {String(idx + 1).padStart(2, '0')}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex flex-col flex-1 min-w-0 pr-4">
+                                        {/* Title — bold uppercase, designed to fit cleanly inside 2 lines structurally without truncation */}
+                                        <div className="flex items-start gap-2 mb-2">
+                                            <h3
+                                                className="font-bold uppercase group-hover:text-[var(--primary-color)] transition-colors flex-1"
+                                                style={{
+                                                    fontFamily: 'var(--font-family-secondary, sans-serif)',
+                                                    color: 'var(--heading-color, var(--primary-color))',
+                                                    fontSize: '15px', // Fixed hardcoded metric mimicking reference size exactly to enforce correct wrapping
+                                                    lineHeight: '1.4',
+                                                    minHeight: '2.8em', // Ensures baseline pushes the description to identical alignments across 1-line or 2-line content
+                                                    wordBreak: 'break-word',
+                                                    whiteSpace: 'normal',
+                                                    margin: 0
+                                                } as React.CSSProperties}
+                                            >
+                                                {item.title}
+                                            </h3>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingItem({ item: item.originalItem, type: settings.source });
+                                                    }}
+                                                    className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Description — justified text, matches reference image */}
+                                        {item.desc && (
+                                            <p
+                                                className="flex-1"
+                                                style={{
+                                                    fontFamily: 'var(--font-family-base, sans-serif)',
+                                                    fontSize: 'var(--font-size-p, 0.75rem)',
+                                                    color: 'var(--text-secondary, #6b7280)',
+                                                    lineHeight: '1.6',
+                                                    textAlign: 'justify'
+                                                } as React.CSSProperties}
+                                            >
+                                                {stripHtml(item.desc)}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle') ? (
                                 /* ---- CONTACT / CIRCLE CARD: center-aligned ---- */
-                                <div className="p-5 flex-1 flex flex-col items-center text-center">
-                                    <div className="flex items-center justify-center gap-2 mb-2">
+                                <div className={`flex-1 flex flex-col items-center text-center ${settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? 'pt-14 px-5 pb-5' : 'p-5'}`}>
+                                    <div className="flex items-center justify-center gap-2 mb-1">
                                         <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors">
                                             {item.title}
                                         </h3>
@@ -911,13 +1058,21 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             </button>
                                         )}
                                     </div>
+                                    {(item.jobTitle || item.company) && (
+                                        <p className="text-xs text-gray-500 font-medium mb-3">
+                                            {item.jobTitle}{item.jobTitle && item.company ? ` at ${item.company}` : item.company}
+                                        </p>
+                                    )}
                                     {item.desc && (
                                         <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">
                                             {stripHtml(item.desc)}
                                         </p>
                                     )}
                                     <button
-                                        onClick={() => setActiveReadMoreItem({ item, index: idx })}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveReadMoreItem({ item, index: idx });
+                                        }}
                                         className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
                                     >
                                         <span>{getTranslation('BTN_READ_MORE', lang)}</span>
@@ -930,51 +1085,93 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                             ) : (
                                 /* ---- REGULAR CARD: left-aligned, numbered layout ---- */
                                 <div className="p-4 flex-1 flex flex-col text-left">
-                                    {!isNumbered && (
-                                        <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                            <span>{new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                                        </div>
-                                    )}
-
-                                    {/* Number + Title row — horizontal for numbered mode */}
-                                    <div className={`mb-3 ${isNumbered ? 'flex flex-row items-start gap-3' : ''}`}>
-                                        {isNumbered && (
-                                            <div className={`font-bold text-gray-200 font-mono select-none leading-none flex-shrink-0 mt-0.5 ${settings.ordering === 'IIIII' ? 'text-xl tracking-tighter' : 'text-4xl'}`}>
+                                    {isNumbered ? (
+                                        /* Numbered: number left, all content right */
+                                        <div className="flex flex-row items-start gap-4 flex-1">
+                                            {/* Number */}
+                                            <div
+                                                className={`text-gray-200 select-none leading-none flex-shrink-0 ${settings.ordering === 'IIIII' ? 'text-2xl tracking-tighter' : 'text-5xl'}`}
+                                                style={{ fontWeight: 600, fontFamily: 'var(--font-family-secondary, sans-serif)', letterSpacing: '-0.02em', lineHeight: 1 }}
+                                            >
                                                 {getOrderedLabel(idx)}
                                             </div>
-                                        )}
-                                        <div className="flex items-start gap-2 flex-1">
-                                            <h3 className={`font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1 ${isNumbered ? '' : 'text-base'}`}>
-                                                {item.title}
-                                            </h3>
-                                            {viewMode === ViewMode.EDIT && (
+
+                                            {/* Content column */}
+                                            <div className="flex flex-col flex-1 min-w-0">
+                                                <div className="flex items-start gap-2 mb-2">
+                                                    <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1">
+                                                        {item.title}
+                                                    </h3>
+                                                    {viewMode === ViewMode.EDIT && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingItem({ item: item.originalItem, type: settings.source });
+                                                            }}
+                                                            className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                        >
+                                                            <Pencil className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {item.desc && (
+                                                    <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">{stripHtml(item.desc)}</p>
+                                                )}
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setEditingItem({ item: item.originalItem, type: settings.source });
+                                                        setActiveReadMoreItem({ item, index: idx });
                                                     }}
-                                                    className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                    className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
                                                 >
-                                                    <Pencil className="w-3.5 h-3.5" />
+                                                    <span>{getTranslation('BTN_READ_MORE', lang)}</span>
+                                                    <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
+                                                        {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
+                                                        <ChevronRight className="w-3 h-3" />
+                                                    </div>
                                                 </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        /* Non-numbered: date + stacked layout */
+                                        <>
+                                            <div className="flex items-center gap-2 mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                                <span>{new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                            </div>
+                                            <div className="flex items-start gap-2 mb-3">
+                                                <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1">
+                                                    {item.title}
+                                                </h3>
+                                                {viewMode === ViewMode.EDIT && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingItem({ item: item.originalItem, type: settings.source });
+                                                        }}
+                                                        className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                    >
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {item.desc && (
+                                                <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">{stripHtml(item.desc)}</p>
                                             )}
-                                        </div>
-                                    </div>
-
-                                    {item.desc && (
-                                        <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">{stripHtml(item.desc)}</p>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveReadMoreItem({ item, index: idx });
+                                                }}
+                                                className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
+                                            >
+                                                <span>{getTranslation('BTN_READ_MORE', lang)}</span>
+                                                <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
+                                                    {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
+                                                    <ChevronRight className="w-3 h-3" />
+                                                </div>
+                                            </button>
+                                        </>
                                     )}
-
-                                    <button
-                                        onClick={() => setActiveReadMoreItem({ item, index: idx })}
-                                        className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
-                                    >
-                                        <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                                        <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                                            {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                                            <ChevronRight className="w-3 h-3" />
-                                        </div>
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -996,6 +1193,8 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                         item={activeReadMoreItem.item}
                         index={activeReadMoreItem.index}
                         isNumbered={isNumbered}
+                        imagePosition={settings.imgPos}
+                        imgBorder={settings.imgBorder}
                         onClose={() => setActiveReadMoreItem(null)}
                     />
                 )
@@ -1219,7 +1418,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
             }}>
             {settings.bgType === 'image' && settings.bgImage && (
                 <div className="absolute inset-0 z-0">
-                    <VisualImage src={settings.bgImage} alt="Background" priority={true} />
+                    <VisualImage src={settings.bgImage} alt="Background" priority={true} className="w-full h-full object-cover object-center" />
                     <div className="absolute inset-0 bg-black/40"></div>
                 </div>
             )}
@@ -2026,7 +2225,7 @@ export const PreviewArea: React.FC = () => {
                                                 <div className="mt-2 text-left">
                                                     <button
                                                         onClick={() => openModal(ModalType.FOOTER)}
-                                                        className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#ff9800] hover:bg-orange-50 transition-colors shadow-sm"
+                                                        className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#254784] hover:bg-orange-50 transition-colors shadow-sm"
                                                     >
                                                         <Plus className="w-6 h-6" />
                                                     </button>
@@ -2065,7 +2264,7 @@ export const PreviewArea: React.FC = () => {
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#ff9800] hover:bg-orange-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#254784] hover:bg-orange-50 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
@@ -2164,7 +2363,7 @@ export const PreviewArea: React.FC = () => {
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">Select a page to view</div>
                 )}
-            </div>
+            </div >
 
             {/* Editor HUD */}
             {/* {viewMode === ViewMode.EDIT && (

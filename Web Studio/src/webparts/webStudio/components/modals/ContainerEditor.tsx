@@ -928,7 +928,7 @@ const DataGridEditor = ({ data, setData, onClose }: { data: Container, setData: 
                                     />
                                 </div>
                                 {normalizedSource === 'Contact' && (
-                                    <VisualSelector label="Image Border Section" value={data.settings.imgBorder || 'sharp'} onChange={(v: any) => updateSetting('imgBorder', v)} options={[{ value: 'sharp', label: 'Sharp Corners', icon: Square }, { value: 'rounded', label: 'Rounded Corners', icon: Square }, { value: 'circle', label: 'Circle', icon: Circle }]} />
+                                    <VisualSelector label="Image Border Section" value={data.settings.imgBorder || 'sharp'} onChange={(v: any) => updateSetting('imgBorder', v)} options={[{ value: 'sharp', label: 'Sharp Corners', icon: Square }, { value: 'rounded', label: 'Rounded Corners', icon: Square }, { value: 'circle', label: 'Circle', icon: Circle }, { value: 'halfcircle', label: 'Half Circle', icon: Circle }]} />
                                 )}
                                 <VisualSelector label="Card Layout" value={data.settings.layout || 'grid'} onChange={(v: any) => updateSetting('layout', v)} options={[{ value: 'grid', label: 'Grid', icon: LayoutGrid }, { value: 'slider', label: 'Slider', icon: ListIcon }]} />
 
@@ -950,6 +950,29 @@ const DataGridEditor = ({ data, setData, onClose }: { data: Container, setData: 
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Card Settings */}
+                            <div>
+                                <h4 className="font-bold text-gray-800 border-b pb-2 mb-4 text-xs uppercase tracking-wider">Card Settings</h4>
+                                <div className="bg-gray-50 p-4 border border-gray-200 rounded-sm">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!data.settings.useOldCardLayout}
+                                            onChange={e => updateSetting('useOldCardLayout', e.target.checked)}
+                                            className="w-4 h-4 accent-[var(--primary-color)] cursor-pointer"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-semibold text-gray-700 group-hover:text-[var(--primary-color)] transition-colors">
+                                                Use Old Site Card Layout
+                                            </span>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                Switches to the classic numbered card style with two-line headings and justified description text.
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
 
                             {/* Identity */}
