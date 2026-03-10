@@ -31,6 +31,8 @@ export const ModalType = {
     STYLING: 'STYLING',
     PAGE_INFO: 'PAGE_INFO',
     VERSION_HISTORY: 'VERSION_HISTORY',
+    CONTACTS: 'CONTACTS',
+    CONTAINER_ITEMS: 'CONTAINER_ITEMS',
     LABEL_EDITOR: 'LABEL_EDITOR'
 } as const;
 
@@ -188,6 +190,11 @@ export interface ContainerItem {
         text?: string;
         url?: string;
     };
+    btnEnabled?: boolean;
+    btnName?: string;
+    btnLinkType?: 'url' | 'container';
+    btnUrl?: string;
+    btnContainerId?: string;
 }
 
 export interface ContactItem {
@@ -216,6 +223,11 @@ export interface ContactItem {
     modifiedBy?: string;
     createdDate?: string;
     modifiedDate?: string;
+    btnEnabled?: boolean;
+    btnName?: string;
+    btnLinkType?: 'url' | 'container';
+    btnUrl?: string;
+    btnContainerId?: string;
 }
 
 export interface SliderItem {
@@ -327,6 +339,7 @@ export interface Container {
     content: Record<string, MultilingualText | any>; // Values are now multilingual
     title?: string; // Container Title (metadata)
     isVisible: boolean;
+    status?: 'Draft' | 'Published';
 }
 
 export interface Page {
@@ -337,7 +350,10 @@ export interface Page {
     createdBy: string;
     modifiedBy: string;
     modifiedDate: string;
+    createdDate?: string;
     imageUrl?: string;
+    imageName?: string;
+    sortOrder?: number;
     containers: Container[];
     // New fields for Page Info Editor
     description?: string;
@@ -391,9 +407,9 @@ export interface SiteConfig {
             subHeadingSize: string;
         };
         columns: FooterColumn[]; // For Table View
-        brandItems?: { id: string; value: string }[];
-        socialItems?: { id: string; type: string; url: string }[];
-        contactItems?: { id: string; type: string; value: string }[];
+        brandItems?: { id: string; label: string, value: string }[];
+        socialItems?: { id: string; type: string; url: string; icon?: string }[];
+        contactItems?: { id: string; type: string; value: string; label?: string, icon?: string }[];
         bottomLinks?: { id: string; label: string; url: string }[];
         contactInfo: {
             address: string;

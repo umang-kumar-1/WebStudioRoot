@@ -243,7 +243,21 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 
             {settings.btnEnabled && settings.btnName && (
                 <div className={`mt-8 ${settings.align === 'center' ? 'flex justify-center' : (settings.align === 'right' ? 'flex justify-end' : '')}`}>
-                    {settings.btnUrl ? (
+                    {settings.btnLinkType === 'container' && settings.btnContainerId ? (
+                        /* ---- Container Scroll Mode ---- */
+                        <button
+                            onClick={() => {
+                                const targetEl = document.getElementById(`container-${settings.btnContainerId}`);
+                                if (targetEl) {
+                                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }}
+                            className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
+                        >
+                            {settings.btnName}
+                        </button>
+                    ) : settings.btnUrl ? (
+                        /* ---- URL Mode ---- */
                         <a
                             href={settings.btnUrl}
                             target={settings.btnUrl.startsWith('http') ? '_blank' : '_self'}
@@ -253,6 +267,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                             {settings.btnName}
                         </a>
                     ) : (
+                        /* ---- No Link configured (placeholder) ---- */
                         <button className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
                             {settings.btnName}
                         </button>
@@ -829,6 +844,61 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
         }
     };
 
+    const renderActionButton = (item: any, idx: number, isOldLayout = false) => {
+        const o = item.originalItem;
+        const classes = isOldLayout
+            ? "text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
+            : "text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto";
+
+        const hasAction = o && o.btnEnabled && o.btnName;
+        if (hasAction) {
+            if (o.btnLinkType === 'container' && o.btnContainerId) {
+                return (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            const targetEl = document.getElementById(`container-${o.btnContainerId}`);
+                            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className={classes}
+                    >
+                        <span>{o.btnName}</span>
+                        <ChevronRight className={isOldLayout ? "w-3 h-3" : "w-3 h-3 ml-0.5"} />
+                    </button>
+                );
+            } else if (o.btnUrl) {
+                return (
+                    <a
+                        href={o.btnUrl}
+                        target={o.btnUrl.startsWith('http') ? '_blank' : '_self'}
+                        rel={o.btnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        onClick={(e) => e.stopPropagation()}
+                        className={classes}
+                    >
+                        <span>{o.btnName}</span>
+                        <ChevronRight className={isOldLayout ? "w-3 h-3" : "w-3 h-3 ml-0.5"} />
+                    </a>
+                );
+            }
+        }
+
+        return (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveReadMoreItem({ item, index: idx });
+                }}
+                className={classes}
+            >
+                <span>{getTranslation('BTN_READ_MORE', lang)}</span>
+                <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
+                    {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : (!isOldLayout && <Info className="w-3 h-3" />)}
+                    <ChevronRight className="w-3 h-3" />
+                </div>
+            </button>
+        );
+    };
+
     const isNumbered = settings.ordering && settings.ordering !== 'none';
     const bgStyle = { backgroundColor: settings.bgColor || 'transparent' };
 
@@ -1073,17 +1143,8 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             </p>
                                         )}
 
-                                        {/* Read More */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveReadMoreItem({ item, index: idx });
-                                            }}
-                                            className="text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
-                                        >
-                                            {getTranslation('BTN_READ_MORE', lang)}
-                                            <ChevronRight className="w-3 h-3" />
-                                        </button>
+                                        {/* Action Button */}
+                                        {renderActionButton(item, idx, true)}
                                     </div>
                                 </div>
                             ) : (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle' || settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? (
@@ -1115,19 +1176,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             {stripHtml(item.desc)}
                                         </p>
                                     )}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveReadMoreItem({ item, index: idx });
-                                        }}
-                                        className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
-                                    >
-                                        <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                                        <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                                            {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                                            <ChevronRight className="w-3 h-3" />
-                                        </div>
-                                    </button>
+                                    {renderActionButton(item, idx, false)}
                                 </div>
                             ) : (
                                 /* ---- REGULAR CARD: left-aligned, numbered layout ---- */
@@ -1176,19 +1225,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                                 {item.desc && (
                                                     <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">{stripHtml(item.desc)}</p>
                                                 )}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveReadMoreItem({ item, index: idx });
-                                                    }}
-                                                    className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
-                                                >
-                                                    <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                                                    <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                                                        {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                                                        <ChevronRight className="w-3 h-3" />
-                                                    </div>
-                                                </button>
+                                                {renderActionButton(item, idx, false)}
                                             </div>
                                         </div>
                                     ) : (
@@ -1228,19 +1265,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             {item.desc && (
                                                 <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">{stripHtml(item.desc)}</p>
                                             )}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveReadMoreItem({ item, index: idx });
-                                                }}
-                                                className="text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto"
-                                            >
-                                                <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                                                <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                                                    {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                                                    <ChevronRight className="w-3 h-3" />
-                                                </div>
-                                            </button>
+                                            {renderActionButton(item, idx, false)}
                                         </>
                                     )}
                                 </div>
