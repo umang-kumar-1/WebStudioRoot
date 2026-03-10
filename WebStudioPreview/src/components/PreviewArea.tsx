@@ -1338,7 +1338,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
 // --- RENDERER 4: CONTACT FORM (UPDATED) ---
 const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: ComponentRendererProps) => {
-    const { addContactQuery } = useStore();
+    const { submitContactQuery } = useStore();
     const { settings } = container;
     const fields = settings.fields || [];
 
@@ -1355,7 +1355,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
     // State for form data and UI feedback
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
-    const [status, setStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
+    const [status, setStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [errors, setErrors] = useState<Record<string, boolean>>({});
     const [captchaValue, setCaptchaValue] = useState('');
     const [generatedCaptcha, setGeneratedCaptcha] = useState(generateCaptcha());
@@ -1469,13 +1469,24 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
         };
 
         // 4. Save to Store
-        addContactQuery(query);
-        setStatus('SUCCESS');
-        setFormData({}); // Reset form
-        setPrivacyAccepted(false);
-        setCaptchaValue('');
-        setGeneratedCaptcha(generateCaptcha()); // Generate new CAPTCHA
-        setErrors({});
+        setStatus('LOADING');
+        submitContactQuery(query).then(result => {
+            if (result.success) {
+                setStatus('SUCCESS');
+                setFormData({}); // Reset form
+                setPrivacyAccepted(false);
+                setCaptchaValue('');
+                setGeneratedCaptcha(generateCaptcha()); // Generate new CAPTCHA
+                setErrors({});
+            } else {
+                setStatus('ERROR');
+                // You could also show a more specific error message if desired
+                console.error("Submission failed:", result.error);
+            }
+        }).catch(err => {
+            setStatus('ERROR');
+            console.error("Submission error:", err);
+        });
 
         // Reset status after delay
         setTimeout(() => setStatus('IDLE'), 5000);
@@ -1626,9 +1637,11 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
 
                     <button
                         onClick={handleSubmit}
-                        className="w-full bg-[var(--primary-color)] text-white py-3 font-bold text-sm shadow-md hover:opacity-90 uppercase tracking-wider rounded-sm mt-4 transition-opacity"
+                        disabled={status === 'LOADING'}
+                        className={`w-full bg-[var(--primary-color)] text-white py-3 font-bold text-sm shadow-md hover:opacity-90 uppercase tracking-wider rounded-sm mt-4 transition-opacity flex items-center justify-center gap-2 ${status === 'LOADING' ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        {getLocalizedText(settings.buttonText || 'Send Message', lang)}
+                        {status === 'LOADING' && <RefreshCw className="w-4 h-4 animate-spin" />}
+                        {status === 'LOADING' ? 'Sending...' : getLocalizedText(settings.buttonText || 'Send Message', lang)}
                     </button>
                 </div>
             </div>

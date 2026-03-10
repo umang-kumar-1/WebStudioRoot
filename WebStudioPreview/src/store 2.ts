@@ -945,6 +945,7 @@ interface AppState {
   // Helper functions for managing taggedItems
   removeItemFromContainers: (itemId: string) => Promise<void>;
   validateContainerTaggedItems: () => Promise<void>;
+  submitContactQuery: (query: ContactQuery) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useStore = create<AppState>()(
@@ -1547,6 +1548,32 @@ export const useStore = create<AppState>()(
         } catch (error) {
           console.error("❌ Error loading Node API data:", error);
           set({ isLoading: false });
+        }
+      },
+
+      submitContactQuery: async (query: ContactQuery) => {
+        try {
+          const API_ROOT = "https://webstudio.hochhuth-consulting.de/PHPAPISHAREPOINT";
+          const res = await fetch(`${API_ROOT}/ContactForm.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(query)
+          });
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Server responded with ${res.status}: ${errorText}`);
+          }
+
+          const result = await res.json();
+          if (result && result.success) {
+            get().addContactQuery(query);
+            return { success: true };
+          }
+          return { success: false, error: result?.error || 'Unknown error from server' };
+        } catch (error) {
+          console.error("Error submitting contact query:", error);
+          return { success: false, error: String(error) };
         }
       },
 
