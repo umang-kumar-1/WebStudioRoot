@@ -428,7 +428,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                             {showTitle && (
                                 <div className="flex items-center gap-2 group/slide">
                                     <h2 className="font-bold text-gray-800" style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h2>
-                                    {activeSlide.originalItem && (
+                                    {/* {activeSlide.originalItem && (
                                         <button
                                             onClick={() => setEditingSlide(activeSlide.originalItem)}
                                             className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
@@ -436,7 +436,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                         >
                                             <Pencil className="w-4 h-4 text-gray-400" />
                                         </button>
-                                    )}
+                                    )} */}
                                 </div>
                             )}
                             {showDesc && (
@@ -1007,20 +1007,22 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                             {settings.useOldCardLayout ? (
                                 /* ---- OLD SITE CARD LAYOUT ---- */
                                 <div className="flex-1 flex flex-row items-start gap-4">
-                                    {/* Large faded number on the left */}
-                                    <div
-                                        className="select-none flex-shrink-0 leading-none"
-                                        style={{
-                                            fontSize: '3rem',
-                                            fontWeight: 700,
-                                            fontFamily: 'var(--font-family-secondary, sans-serif)',
-                                            color: '#e2e8f0',
-                                            lineHeight: 1,
-                                            minWidth: '3.5rem'
-                                        }}
-                                    >
-                                        {String(idx + 1).padStart(2, '0')}
-                                    </div>
+                                    {/* Large faded number on the left — controlled by Ordering Type setting */}
+                                    {settings.ordering !== 'none' && (
+                                        <div
+                                            className="select-none flex-shrink-0 leading-none"
+                                            style={{
+                                                fontSize: '3rem',
+                                                fontWeight: 700,
+                                                fontFamily: 'var(--font-family-secondary, sans-serif)',
+                                                color: '#e2e8f0',
+                                                lineHeight: 1,
+                                                minWidth: '3.5rem'
+                                            }}
+                                        >
+                                            {getOrderedLabel(idx)}
+                                        </div>
+                                    )}
 
                                     {/* Content */}
                                     <div className="flex flex-col flex-1 min-w-0 pr-4">
@@ -1029,10 +1031,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             <h3
                                                 className="font-bold uppercase group-hover:text-[var(--primary-color)] transition-colors flex-1"
                                                 style={{
-                                                    ...titleStyle,
                                                     fontFamily: 'var(--font-family-secondary, sans-serif)',
                                                     color: 'var(--primary-color)',
-                                                    fontSize: titleStyle.fontSize || '15px',
+                                                    fontSize: '15px',
                                                     lineHeight: '1.4',
                                                     minHeight: '2.8em',
                                                     wordBreak: 'break-word',
@@ -1833,6 +1834,52 @@ const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => 
     );
 });
 
+// --- RENDERER 7: CONTAINER SECTION ---
+const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+    const { siteConfig } = useStore();
+    const themeConfig = (siteConfig as any).themeConfig || {};
+    const title = getLocalizedText(container.content?.title, lang);
+    const body = container.settings?.body || '';
+
+    return (
+        <div className="w-full py-10 px-2" style={{ backgroundColor: 'var(--bg-body, #fff)' }}>
+            <div className="max-w-7xl mx-auto px-4">
+                {title && (
+                    <h1
+                        className="font-bold uppercase tracking-wider mb-6 pb-3"
+                        style={{
+                            color: themeConfig['--primary-color'] || 'var(--primary-color)',
+                            borderBottom: `2px solid ${themeConfig['--primary-color'] || 'var(--primary-color)'}`,
+                            fontSize: themeConfig['--font-size-h2'] || '1.5rem',
+                            fontFamily: themeConfig['--font-family-base'] || 'inherit'
+                        }}
+                    >
+                        {title}
+                    </h1>
+                )}
+                {body && (
+                    <div
+                        className="leading-relaxed"
+                        style={{
+                            fontFamily: themeConfig['--font-family-base'] || 'inherit',
+                            fontSize: themeConfig['--font-size-base'] || '1rem',
+                            color: themeConfig['--text-primary'] || '#333',
+                            lineHeight: '1.8',
+                            fontWeight: 500
+                        }}
+                        dangerouslySetInnerHTML={{ __html: body }}
+                    />
+                )}
+                {!title && !body && (
+                    <div className="text-center py-16 text-gray-400 border-2 border-dashed border-gray-200 rounded">
+                        <span className="text-sm font-medium">Container Section — Add content via the editor</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+});
+
 // --- MAIN WRAPPER ---
 const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: { container: any, viewMode: ViewMode, lang: LanguageCode, pageTitle: string }) => {
     const { openModal, setEditingContainerId } = useStore();
@@ -1872,6 +1919,7 @@ const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: {
             {container.type === ContainerType.CONTACT_FORM && <ContactFormRenderer container={container} lang={lang} pageTitle={pageTitle} />}
             {container.type === ContainerType.TABLE && <TableRenderer container={container} lang={lang} />}
             {container.type === ContainerType.MAP && <MapRenderer container={container} lang={lang} />}
+            {container.type === ContainerType.CONTAINER_SECTION && <ContainerSectionRenderer container={container} lang={lang} />}
 
             {/* Fallback for other types if any (e.g. IMAGE_TEXT) */}
             {container.type === ContainerType.IMAGE_TEXT && (
@@ -2098,7 +2146,28 @@ export const PreviewArea: React.FC = () => {
 
     const handleInternalLink = React.useCallback((e: React.MouseEvent, url: string) => {
         if (!url) return;
-        // Normalize URL for check
+
+        // Helper: scroll the preview container to the top
+        const scrollToTop = () => {
+            setTimeout(() => {
+                const scrollContainer = document.getElementById('preview-main-scroll');
+                if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 50);
+        };
+
+        // Handle hash-based routes: e.g. #/privacy-policy (SharePoint style)
+        if (url.startsWith('#')) {
+            const slug = url.slice(1) || '/';
+            const targetPage = pages.find(p => p.slug === slug || (slug === '/' && p.slug === '/'));
+            if (targetPage) {
+                e.preventDefault();
+                setCurrentPage(targetPage.id);
+                scrollToTop();
+            }
+            return;
+        }
+
+        // Handle absolute / relative URL internal links
         const normalizedUrl = url.startsWith('/') ? `${siteUrl}${url === '/' ? '' : url}` : url;
         if (normalizedUrl.startsWith(siteUrl)) {
             const path = normalizedUrl.replace(siteUrl, '') || '/';
@@ -2106,6 +2175,7 @@ export const PreviewArea: React.FC = () => {
             if (targetPage) {
                 e.preventDefault();
                 setCurrentPage(targetPage.id);
+                scrollToTop();
             }
         }
     }, [pages, setCurrentPage, siteUrl]);
@@ -2306,7 +2376,7 @@ export const PreviewArea: React.FC = () => {
                                                         <div key={item.id}>
                                                             <h4 className={idx === 0 ? "font-bold mb-1" : "opacity-80 leading-relaxed"} style={{
                                                                 fontSize: idx === 0 ? footerConfig.fontSettings.headingSize : footerConfig.fontSettings.subHeadingSize,
-                                                                color: '#254784'
+                                                                color: '#000000ff'
                                                             }}>
                                                                 {item.value || (idx === 0 ? siteConfig.name : '')}
                                                             </h4>
@@ -2316,7 +2386,7 @@ export const PreviewArea: React.FC = () => {
                                                     <div className="text-left">
                                                         <h4 className="font-bold mb-2 text-[#254784]" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
                                                         {footerConfig.contactInfo.address && (
-                                                            <p className="opacity-80 leading-relaxed text-[#254784]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <p className="opacity-80 leading-relaxed text-[#254784]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: '#000000ff' }}>
                                                                 {footerConfig.contactInfo.address}
                                                             </p>
                                                         )}

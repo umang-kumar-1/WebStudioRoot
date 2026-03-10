@@ -8,7 +8,8 @@ export const ContainerType = {
     CONTACT_FORM: 'CONTACT_FORM',
     DATA_GRID: 'DATA_GRID',
     TABLE: 'TABLE',
-    MAP: 'MAP'
+    MAP: 'MAP',
+    CONTAINER_SECTION: 'CONTAINER_SECTION'
 } as const;
 
 export type ContainerType = typeof ContainerType[keyof typeof ContainerType];
