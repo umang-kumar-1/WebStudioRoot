@@ -1263,6 +1263,7 @@ export const useStore = create<AppState>()(
             type: item.NavType || 'Page',
             pageId: item.SmartPageLookupId ? normalizeId(item.SmartPageLookupId) : undefined,
             url: item.ExternalURL,
+            containerId: item.ContainerId,
             isVisible: item.IsVisible !== false,
             openInNewTab: item.OpenInNewTab || false,
             order: item.SortOrder || 0,

@@ -62,9 +62,10 @@ export interface NavItem {
     id: string;
     parentId: string; // 'root' for top level
     title: string; // Simplified for this specific requirement
-    type: 'Page' | 'External';
+    type: 'Page' | 'External' | 'Container';
     url?: string;
     pageId?: string; // Reference to a Smart Page
+    containerId?: string; // Reference to a Container
     isVisible: boolean;
     openInNewTab: boolean;
     order: number;

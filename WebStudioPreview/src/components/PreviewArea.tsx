@@ -34,6 +34,18 @@ const stripHtml = (html: string) => {
     return tmp.textContent || tmp.innerText || "";
 };
 
+const transformSharePointUrl = (url: string) => {
+    if (!url) return url;
+    // Handle SharePoint style URLs that use '#' for client-side routing
+    if (url.includes('.sharepoint.com') && url.includes('#')) {
+        const parts = url.split('#');
+        if (parts.length > 1) {
+            return parts[1]; // Extract the path/slug part after '#'
+        }
+    }
+    return url;
+};
+
 
 
 
@@ -140,9 +152,9 @@ const GeoChartMap = ({ mapType, selectedRegion, selectedState, height = 400 }: {
     return <div ref={containerRef} style={{ width: '100%', height: `${height}px` }} />;
 };
 
-const renderRichText = (html: string, className?: string) => {
+const renderRichText = (html: string, className?: string, style?: React.CSSProperties) => {
     if (!html) return null;
-    return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+    return <div className={className} style={style} dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
 const getDocIcon = (type: string) => {
@@ -209,7 +221,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
         <div className={`relative z-10 max-w-5xl mx-auto w-full ${settings.align === 'center' ? 'items-center' : ''} ${settings.bgType === 'layout' ? 'px-8' : ''}`}>
             <h1
                 className={`font-bold mb-6 tracking-tight drop-shadow-md ${titleColor.className || ''} ${letterCase}`}
-                style={titleColor.style}
+                style={{ ...titleColor.style, ...(settings.titleFontSize ? { fontSize: `${settings.titleFontSize}px`, '--font-size-h1': `${settings.titleFontSize}px` } as React.CSSProperties : {}) }}
             >
                 {getLocalizedText(content.title, lang)}
             </h1>
@@ -217,7 +229,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
             {getLocalizedText(content.subtitle, lang) && (
                 <h2
                     className={`font-medium opacity-95 mb-4 ${subtitleColor.className || ''}`}
-                    style={subtitleColor.style}
+                    style={{ ...subtitleColor.style, ...(settings.subtitleFontSize ? { fontSize: `${settings.subtitleFontSize}px`, '--font-size-h2': `${settings.subtitleFontSize}px` } as React.CSSProperties : {}) }}
                 >
                     {getLocalizedText(content.subtitle, lang)}
                 </h2>
@@ -225,7 +237,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 
             <div
                 className={`text-lg opacity-90 max-w-3xl leading-relaxed ${settings.align === 'center' ? 'mx-auto' : ''} ${descColor.className || ''}`}
-                style={descColor.style}
+                style={{ ...descColor.style, ...(settings.descFontSize ? { fontSize: `${settings.descFontSize}px`, '--font-size-p': `${settings.descFontSize}px` } as React.CSSProperties : {}) }}
                 dangerouslySetInnerHTML={{ __html: getLocalizedText(content.description, lang) || '' }}
             />
 
@@ -352,9 +364,19 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
     const sliderSubheading = container.settings.subheading
         ? (getLocalizedText(container.settings.subheading, lang) || container.settings.subheading)
         : '';
+    const sliderDescription = container.settings.description
+        ? (getLocalizedText(container.settings.description, lang) || container.settings.description)
+        : '';
 
-    const next = () => setCurrent((p) => Math.min(p + 1, dynamicSlides.length - 1));
-    const prev = () => setCurrent((p) => Math.max(p - 1, 0));
+    const sectionHeaderAlignClass = container.settings.align === 'center' ? 'text-center' : (container.settings.align === 'right' ? 'text-right' : 'text-left');
+
+    // Resolve font styles
+    const titleStyle: React.CSSProperties = container.settings.titleFontSize ? { fontSize: `${container.settings.titleFontSize}px` } : {};
+    const subtitleStyle: React.CSSProperties = container.settings.subtitleFontSize ? { fontSize: `${container.settings.subtitleFontSize}px` } : {};
+    const descStyle: React.CSSProperties = container.settings.descFontSize ? { fontSize: `${container.settings.descFontSize}px` } : {};
+
+    const next = () => { if (current < dynamicSlides.length - 1) setCurrent((p) => p + 1); };
+    const prev = () => { if (current > 0) setCurrent((p) => p - 1); };
 
     const canPrev = current > 0;
     const canNext = current < dynamicSlides.length - 1;
@@ -392,19 +414,20 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                     />
                 )}
                 <div className="w-full max-w-6xl px-8">
-                    <div className="mb-8">
+                    <div className={`mb-8 ${sectionHeaderAlignClass} w-full`}>
                         {sliderTitle && (
-                            <h1 className="text-3xl font-bold text-[var(--primary-color)]">{sliderTitle}</h1>
+                            <h1 className="font-bold text-[var(--primary-color)]" style={{ ...titleStyle, ...(container.settings.titleFontSize ? {} : { fontSize: '1.875rem' }) }}>{sliderTitle}</h1>
                         )}
                         {sectionSubheading && (
-                            <p className="text-base text-gray-500 mt-2">{getLocalizedText(sectionSubheading, lang) || sectionSubheading}</p>
+                            <p className="text-gray-500 mt-2" style={subtitleStyle}>{getLocalizedText(sectionSubheading, lang) || sectionSubheading}</p>
                         )}
+                        {sliderDescription && renderRichText(sliderDescription, `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''}`)}
                     </div>
                     <div className="flex flex-col lg:flex-row gap-12 items-center bg-white">
                         <div className="flex-1 space-y-6">
                             {showTitle && (
                                 <div className="flex items-center gap-2 group/slide">
-                                    <h2 className="text-2xl font-bold text-gray-800">{getLocalizedText(activeSlide.title, lang)}</h2>
+                                    <h2 className="font-bold text-gray-800" style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h2>
                                     {activeSlide.originalItem && (
                                         <button
                                             onClick={() => setEditingSlide(activeSlide.originalItem)}
@@ -418,8 +441,8 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                             )}
                             {showDesc && (
                                 <>
-                                    {showSubtitleSeparately && renderRichText(slideSubtitle, "text-lg text-gray-500 font-medium")}
-                                    {slideDesc && renderRichText(slideDesc, "text-sm text-gray-600 leading-relaxed")}
+                                    {showSubtitleSeparately && renderRichText(slideSubtitle, "font-medium text-gray-500 text-left")}
+                                    {slideDesc && renderRichText(slideDesc, "leading-relaxed text-gray-600 text-left")}
                                 </>
                             )}
                             {activeSlide.cta && (
@@ -429,14 +452,14 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                 <button
                                     onClick={prev}
                                     disabled={!canPrev}
-                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={next}
                                     disabled={!canNext}
-                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
                                 >
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -479,14 +502,15 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
             )}
 
             {/* Section Header */}
-            {(sliderTitle || sliderSubheading) && (
-                <div className="px-8 pt-10 pb-4 max-w-7xl mx-auto">
+            {(sliderTitle || sliderSubheading || sliderDescription) && (
+                <div className={`px-8 pt-10 pb-4 max-w-7xl mx-auto ${sectionHeaderAlignClass} w-full`}>
                     {sliderTitle && (
-                        <h2 className="text-2xl font-bold text-[var(--primary-color)] mb-1">{sliderTitle}</h2>
+                        <h2 className="font-bold text-[var(--primary-color)] mb-1" style={titleStyle}>{sliderTitle}</h2>
                     )}
                     {sliderSubheading && (
-                        <p className="text-sm text-gray-500">{sliderSubheading}</p>
+                        <p className="text-gray-500" style={subtitleStyle}>{sliderSubheading}</p>
                     )}
+                    {sliderDescription && renderRichText(sliderDescription, `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''}`)}
                 </div>
             )}
 
@@ -497,7 +521,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                     <button
                         onClick={prev}
                         disabled={!canPrev}
-                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 ml-2 ${canPrev ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 ml-2 ${canPrev ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed opacity-50'}`}
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
@@ -528,13 +552,13 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                             )}
 
                             {/* Content overlay side based on layout */}
-                            <div className={`absolute p-12 flex flex-col justify-center transition-all duration-700 ${activeSlide.layout === 'text_overlay' || !activeSlide.layout ? 'inset-0 bg-black/40 text-white items-center text-center' : ''} ${activeSlide.layout === 'solid_color' ? 'inset-0 bg-gray-800 text-white items-center text-center z-0' : ''} ${activeSlide.layout === 'split_left_img' ? 'right-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pl-16' : ''} ${activeSlide.layout === 'split_right_img' ? 'left-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pr-16' : ''}`}>
+                            <div className={`absolute p-12 flex flex-col transition-all duration-700 ${container.settings.overlayPosition === 'bottom' ? 'justify-end' : 'justify-center'} ${activeSlide.layout === 'text_overlay' || !activeSlide.layout ? 'inset-0 bg-black/40 text-white items-center text-center' : ''} ${activeSlide.layout === 'solid_color' ? 'inset-0 bg-gray-800 text-white items-center text-center z-0' : ''} ${activeSlide.layout === 'split_left_img' ? 'right-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pl-16' : ''} ${activeSlide.layout === 'split_right_img' ? 'left-0 top-0 bottom-0 w-1/2 bg-white text-gray-800 items-start text-left pr-16' : ''}`}>
                                 {container.settings.showSlideTitle !== false && (
-                                    <h3 className={`text-4xl font-bold mb-4 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white' : 'text-gray-900'}`}>{getLocalizedText(activeSlide.title, lang)}</h3>
+                                    <h3 className={`font-bold mb-4 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white' : 'text-gray-900'}`} style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h3>
                                 )}
-                                <h4 className={`text-xl font-medium mb-6 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-90' : 'text-gray-600'}`}>{getLocalizedText(activeSlide.subtitle || activeSlide.sub, lang)}</h4>
+                                <h4 className={`font-medium mb-6 ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-90' : 'text-gray-600'}`} style={subtitleStyle}>{getLocalizedText(activeSlide.subtitle || activeSlide.sub, lang)}</h4>
                                 {container.settings.showSlideDescription !== false && (
-                                    <div className={`text-base leading-relaxed mb-8 max-w-2xl ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-80' : 'text-gray-700'}`} dangerouslySetInnerHTML={{ __html: getLocalizedText(activeSlide.desc, lang) }} />
+                                    <div className={`leading-relaxed mb-8 max-w-2xl ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-80' : 'text-gray-700'}`} style={descStyle} dangerouslySetInnerHTML={{ __html: getLocalizedText(activeSlide.desc, lang) }} />
                                 )}
                                 {activeSlide.cta && (
                                     <a href={activeSlide.url || '#'} className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold tracking-wide rounded-sm shadow-md hover:opacity-90">{getLocalizedText(activeSlide.cta, lang)}</a>
@@ -568,7 +592,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                             <div className="absolute bottom-0 inset-x-0 px-6 pb-5 flex items-end justify-between">
                                 <div className="flex items-center gap-2">
                                     {container.settings.showSlideTitle !== false && (
-                                        <h3 className="text-xl font-bold text-white uppercase tracking-wide">
+                                        <h3 className="font-bold text-white uppercase tracking-wide" style={titleStyle}>
                                             {getLocalizedText(activeSlide.title, lang)}
                                         </h3>
                                     )}
@@ -606,7 +630,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                     <button
                         onClick={next}
                         disabled={!canNext}
-                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 mr-2 ${canNext ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-100 border-gray-100 text-gray-300 cursor-not-allowed'}`}
+                        className={`flex-shrink-0 w-10 h-10 flex items-center justify-center border shadow rounded-full transition-colors z-10 mr-2 ${canNext ? 'bg-white border-gray-200 text-[var(--primary-color)] hover:bg-gray-50' : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed opacity-50'}`}
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
@@ -678,6 +702,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                 img: '',
                 status: d.status,
                 type: d.type,
+                encodedAbsUrl: (d as any).encodedAbsUrl || (d as any).EncodedAbsUrl || '',
                 url: d.url,
                 openInNewTab: (d as any).openInNewTab,
                 readMoreText: getItemTranslation(d, lang, 'readMoreText'),
@@ -737,6 +762,8 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
             };
         }
     }, [isSlider, items, checkScroll]);
+
+
 
     const gapSize = settings.spacing === 'compact' ? 1 : (settings.spacing === 'wide' ? 3 : 2);
     const spacingClass = settings.spacing === 'compact' ? 'gap-4' : (settings.spacing === 'wide' ? 'gap-12' : 'gap-8');
@@ -816,6 +843,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
         }
     };
     const layout = getLayoutClasses();
+    const titleStyle: React.CSSProperties = settings.titleFontSize ? { fontSize: `${settings.titleFontSize}px` } : {};
+    const subtitleStyle: React.CSSProperties = settings.subtitleFontSize ? { fontSize: `${settings.subtitleFontSize}px` } : {};
+    const descStyle: React.CSSProperties = settings.descFontSize ? { fontSize: `${settings.descFontSize}px` } : {};
 
     return (
         <div className={`py-16 px-6 ${settings.useOldCardLayout ? 'w-full max-w-[1536px]' : 'max-w-7xl'} mx-auto relative group/slider`} style={bgStyle}>
@@ -829,18 +859,19 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                         settings.align === 'right' ? 'text-right' :
                             'text-left'
                         }`}>
-                        <h2 className="font-bold text-[var(--primary-color)] tracking-tight" style={{ fontFamily: 'var(--font-family-secondary)' }}>
+                        <h2 className="font-bold text-[var(--primary-color)] tracking-tight" style={{ ...titleStyle, fontFamily: 'var(--font-family-secondary)' }}>
                             {getLocalizedText(container.content.title, lang)}
                         </h2>
                         {(settings.showSubheading !== false) && settings.subheading && (
-                            <p className={`text-lg text-gray-500 font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''}`}>
+                            <p className={`text-lg text-gray-500 font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''}`} style={subtitleStyle}>
                                 {getLocalizedText(settings.subheading, lang) || settings.subheading}
                             </p>
                         )}
                         {(settings.showDescription !== false) && settings.description && (
                             renderRichText(
                                 getLocalizedText(settings.description, lang) || settings.description,
-                                `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''}`
+                                `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''}`,
+                                descStyle
                             )
                         )}
                     </div>
@@ -850,14 +881,14 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                             <button
                                 onClick={() => scroll('left')}
                                 disabled={!canScrollLeft}
-                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollLeft ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollLeft ? 'bg-gray-200 hover:bg-gray-300 text-gray-600' : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'}`}
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={() => scroll('right')}
                                 disabled={!canScrollRight}
-                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollRight ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors shadow-sm ${canScrollRight ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-300 cursor-not-allowed opacity-50'}`}
                             >
                                 <ChevronRight className="w-5 h-5" />
                             </button>
@@ -893,12 +924,13 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                 ${borderClass} 
                                 ${settings.source === 'Smart Pages' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
                                 ${isSlider ? 'snap-start flex-shrink-0' : ''}
-                                ${settings.useOldCardLayout ? '' : settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? 'overflow-visible' : 'overflow-hidden'}`}
+                                ${settings.useOldCardLayout ? '' : (settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? 'overflow-visible' : 'overflow-hidden'}`}
                             style={{
                                 width: isSlider ? cardWidth : 'auto',
                                 flex: isSlider ? `0 0 ${cardWidth}` : undefined,
-                                marginTop: settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? '3.5rem' : undefined,
-                                borderLeft: settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? '3px solid var(--primary-color)' : undefined
+                                marginTop: (settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? '5.5rem' : undefined,
+                                borderLeft: (settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? '4px solid var(--primary-color) !important' : undefined,
+                                minHeight: (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle' || settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? '420px' : undefined
                             }}>
                             {/* Image Area - Responsive & Conditional */}
                             {settings.imgPos !== 'none' && hasVisual && (() => {
@@ -909,8 +941,8 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                 if (isCircle) {
                                     // Circle mode: fixed centered avatar
                                     return (
-                                        <div className="w-full flex justify-center pt-6 pb-2">
-                                            <div className="w-28 h-28 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
+                                        <div className="w-full flex justify-center pt-8 pb-3">
+                                            <div className="w-40 h-40 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-2 border-gray-200">
                                                 {item.img ? (
                                                     <VisualImage src={item.img} alt={item.title} priority={idx < 4} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 ) : (
@@ -933,9 +965,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                                     window.open(item.url, item.openInNewTab ? '_blank' : '_self');
                                                 }
                                             }}
-                                            style={{ top: '-3.5rem' }}
+                                            style={{ top: '-5rem' }}
                                         >
-                                            <div className="w-24 h-24 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-4 border-white shadow-lg">
+                                            <div className="w-40 h-40 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 border-4 border-white shadow-lg">
                                                 {item.img ? (
                                                     <VisualImage src={item.img} alt={item.title} priority={idx < 4} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                                 ) : (
@@ -974,49 +1006,67 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
                             {settings.useOldCardLayout ? (
                                 /* ---- OLD SITE CARD LAYOUT ---- */
-                                <div className="flex items-start gap-4">
-
-                                    {/* Number */}
+                                <div className="flex-1 flex flex-row items-start gap-4">
+                                    {/* Large faded number on the left */}
                                     <div
-                                        className="flex-shrink-0 select-none"
+                                        className="select-none flex-shrink-0 leading-none"
                                         style={{
-                                            fontSize: "48px",
-                                            fontWeight: 300,
-                                            color: "#d1d5db",
+                                            fontSize: '3rem',
+                                            fontWeight: 700,
+                                            fontFamily: 'var(--font-family-secondary, sans-serif)',
+                                            color: '#e2e8f0',
                                             lineHeight: 1,
-                                            minWidth: "60px"
+                                            minWidth: '3.5rem'
                                         }}
                                     >
-                                        {String(idx + 1).padStart(2, "0")}
+                                        {String(idx + 1).padStart(2, '0')}
                                     </div>
 
                                     {/* Content */}
-                                    <div className="flex flex-col flex-1">
-
+                                    <div className="flex flex-col flex-1 min-w-0 pr-4">
                                         {/* Title */}
-                                        <h3
-                                            className="font-bold uppercase mb-2"
-                                            style={{
-                                                color: "var(--primary-color)",
-                                                fontSize: "15px",
-                                                lineHeight: "1.3",
-                                                fontFamily: "var(--font-family-secondary)"
-                                            }}
-                                        >
-                                            {item.title}
-                                        </h3>
+                                        <div className="flex items-start gap-2 mb-2">
+                                            <h3
+                                                className="font-bold uppercase group-hover:text-[var(--primary-color)] transition-colors flex-1"
+                                                style={{
+                                                    ...titleStyle,
+                                                    fontFamily: 'var(--font-family-secondary, sans-serif)',
+                                                    color: 'var(--primary-color)',
+                                                    fontSize: titleStyle.fontSize || '15px',
+                                                    lineHeight: '1.4',
+                                                    minHeight: '2.8em',
+                                                    wordBreak: 'break-word',
+                                                    whiteSpace: 'normal',
+                                                    margin: 0
+                                                } as React.CSSProperties}
+                                            >
+                                                {item.title}
+                                            </h3>
+                                            {viewMode === ViewMode.EDIT && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingItem({ item: item.originalItem, type: settings.source });
+                                                    }}
+                                                    className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
 
                                         {/* Description */}
                                         {item.desc && (
                                             <p
-                                                className="mb-2"
+                                                className="flex-1"
                                                 style={{
-                                                    fontSize: "13px",
-                                                    color: "#6b7280",
-                                                    lineHeight: "1.6",
-                                                    textAlign: "justify",
-                                                    fontFamily: "var(--font-family-base)"
-                                                }}
+                                                    ...descStyle,
+                                                    fontFamily: 'var(--font-family-base, sans-serif)',
+                                                    fontSize: descStyle.fontSize || 'var(--font-size-p, 0.75rem)',
+                                                    color: 'var(--text-secondary, #6b7280)',
+                                                    lineHeight: '1.6',
+                                                    textAlign: 'justify'
+                                                } as React.CSSProperties}
                                             >
                                                 {stripHtml(item.desc)}
                                             </p>
@@ -1028,19 +1078,18 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                                 e.stopPropagation();
                                                 setActiveReadMoreItem({ item, index: idx });
                                             }}
-                                            className="text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-1"
+                                            className="text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
                                         >
-                                            Read More
+                                            {getTranslation('BTN_READ_MORE', lang)}
                                             <ChevronRight className="w-3 h-3" />
                                         </button>
-
                                     </div>
                                 </div>
-                            ) : (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle') ? (
+                            ) : (settings.source === 'Contacts' || settings.source === 'Contact' || settings.imgBorder === 'circle' || settings.imgBorder === 'Circle' || settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? (
                                 /* ---- CONTACT / CIRCLE CARD: center-aligned ---- */
-                                <div className={`flex-1 flex flex-col items-center text-center ${settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle' ? 'pt-14 px-5 pb-5' : 'p-5'}`}>
+                                <div className={`flex-1 flex flex-col items-center text-center ${(settings.imgBorder === 'halfcircle' || settings.imgBorder === 'Halfcircle') ? 'pt-24 px-4 pb-5' : 'p-5'}`}>
                                     <div className="flex items-center justify-center gap-2 mb-1">
-                                        <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors">
+                                        <h3 className="font-bold text-gray-800 text-xl uppercase tracking-wider group-hover:text-[var(--primary-color)] transition-colors" style={titleStyle}>
                                             {item.title}
                                         </h3>
                                         {viewMode === ViewMode.EDIT && (
@@ -1056,12 +1105,12 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                         )}
                                     </div>
                                     {(item.jobTitle || item.company) && (
-                                        <p className="text-xs text-gray-500 font-medium mb-3">
+                                        <p className="text-sm text-gray-500 font-medium mb-3" style={subtitleStyle}>
                                             {item.jobTitle}{item.jobTitle && item.company ? ` at ${item.company}` : item.company}
                                         </p>
                                     )}
                                     {item.desc && (
-                                        <p className="text-sm text-gray-600 mb-4 line-clamp-3 flex-1 leading-relaxed">
+                                        <p className="text-base text-gray-600 mb-4 flex-1 leading-relaxed text-justify" style={descStyle}>
                                             {stripHtml(item.desc)}
                                         </p>
                                     )}
@@ -1096,8 +1145,20 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                             {/* Content column */}
                                             <div className="flex flex-col flex-1 min-w-0">
                                                 <div className="flex items-start gap-2 mb-2">
-                                                    <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1">
-                                                        {item.title}
+                                                    <h3 className="font-bold text-sm uppercase tracking-wide leading-snug flex-1">
+                                                        {settings.source === 'Document' && item.encodedAbsUrl ? (
+                                                            <a
+                                                                href={item.encodedAbsUrl + '?web=1'}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="text-gray-800 hover:text-[var(--primary-color)] hover:underline transition-colors cursor-pointer"
+                                                            >
+                                                                {item.title}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-800 group-hover:text-[var(--primary-color)] transition-colors">{item.title}</span>
+                                                        )}
                                                     </h3>
                                                     {viewMode === ViewMode.EDIT && (
                                                         <button
@@ -1136,8 +1197,20 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                                                 <span>{new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                                             </div>
                                             <div className="flex items-start gap-2 mb-3">
-                                                <h3 className="font-bold text-gray-800 text-base group-hover:text-[var(--primary-color)] transition-colors leading-snug flex-1">
-                                                    {item.title}
+                                                <h3 className="font-bold text-base leading-snug flex-1">
+                                                    {settings.source === 'Document' && item.encodedAbsUrl ? (
+                                                        <a
+                                                            href={item.encodedAbsUrl + '?web=1'}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="text-gray-800 hover:text-[var(--primary-color)] hover:underline transition-colors cursor-pointer"
+                                                        >
+                                                            {item.title}
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-gray-800 group-hover:text-[var(--primary-color)] transition-colors">{item.title}</span>
+                                                    )}
                                                 </h3>
                                                 {viewMode === ViewMode.EDIT && (
                                                     <button
@@ -1761,7 +1834,7 @@ const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: {
     };
 
     return (
-        <div className={`relative group ${viewMode === ViewMode.EDIT ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : ''}`}>
+        <div id={`container-${container.id}`} className={`relative group ${viewMode === ViewMode.EDIT ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : ''}`}>
             {viewMode === ViewMode.EDIT && (
                 <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -1808,11 +1881,24 @@ const TopNavDropdownItem = React.memo(({ item, allItems, onNavigate }: TopNavIte
     const hasChildren = children.length > 0;
 
     const handleClick = useCallback((e: React.MouseEvent) => {
-        if (item.type === 'Page' && item.pageId) {
+        if (item.type === 'Container' && item.containerId && item.pageId) {
             e.preventDefault();
             onNavigate(item.pageId);
+            setTimeout(() => {
+                const containerElem = document.getElementById(`container-${item.containerId}`);
+                if (containerElem) {
+                    containerElem.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        } else if (item.type === 'Page' && item.pageId) {
+            e.preventDefault();
+            onNavigate(item.pageId);
+            setTimeout(() => {
+                const scrollContainer = document.getElementById('preview-main-scroll');
+                if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 50);
         }
-    }, [item.type, item.pageId, onNavigate]);
+    }, [item.type, item.pageId, item.containerId, onNavigate]);
 
     const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
@@ -1849,11 +1935,24 @@ const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProp
     const hasChildren = children.length > 0;
 
     const handleClick = useCallback((e: React.MouseEvent) => {
-        if (item.type === 'Page' && item.pageId) {
+        if (item.type === 'Container' && item.containerId && item.pageId) {
             e.preventDefault();
             onNavigate(item.pageId);
+            setTimeout(() => {
+                const containerElem = document.getElementById(`container-${item.containerId}`);
+                if (containerElem) {
+                    containerElem.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        } else if (item.type === 'Page' && item.pageId) {
+            e.preventDefault();
+            onNavigate(item.pageId);
+            setTimeout(() => {
+                const scrollContainer = document.getElementById('preview-main-scroll');
+                if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 50);
         }
-    }, [item.type, item.pageId, onNavigate]);
+    }, [item.type, item.pageId, item.containerId, onNavigate]);
 
     const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
@@ -1888,34 +1987,29 @@ const LanguageSelector = () => {
     const languages = siteConfig.languages || ['en', 'de', 'fr', 'es'];
     const [isOpen, setIsOpen] = useState(false);
 
-    const languageData: Record<string, { label: string }> = {
-        en: { label: 'English' },
-        de: { label: 'German' },
-        fr: { label: 'French' },
-        es: { label: 'Spanish' }
+    const getLangLabel = (code: string) => {
+        switch (code) {
+            case 'en': return 'English';
+            case 'de': return 'German';
+            case 'fr': return 'French';
+            case 'es': return 'Spanish';
+            default: return code.toUpperCase();
+        }
     };
 
     return (
-        <div className="relative flex-shrink-0">
+        <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 bg-white border border-[var(--primary-color)]/20 shadow-sm rounded-sm hover:border-[var(--primary-color)]/40 hover:bg-blue-50/50 transition-all text-gray-700 font-bold"
-                title="Change Language"
+                className="flex items-center gap-1 text-xs font-bold px-2 py-1 border border-transparent hover:bg-gray-50 transition-all text-gray-700"
             >
-                <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-[var(--primary-color)] rounded-full"></div>
-                    <span className="text-sm uppercase tracking-widest">{currentLanguage}</span>
-                </div>
-                <ChevronDown className={`w-4 h-4 text-[var(--primary-color)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                {currentLanguage.toUpperCase()} <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)}></div>
-                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 shadow-2xl rounded-none z-[110] py-1 overflow-hidden">
-                        <div className="px-4 py-2 border-b border-gray-50 bg-gray-50/50 mb-1">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select Language</span>
-                        </div>
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 shadow-xl z-[110] py-1 animate-in fade-in zoom-in-95 duration-100">
                         {languages.map((lang: string) => (
                             <button
                                 key={lang}
@@ -1923,17 +2017,12 @@ const LanguageSelector = () => {
                                     setLanguage(lang as LanguageCode);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between hover:bg-gray-50 transition-colors ${currentLanguage === lang ? 'bg-blue-50/50 text-[var(--primary-color)] font-bold' : 'text-gray-700'}`}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between ${currentLanguage === lang ? 'font-bold bg-blue-50 text-[var(--primary-color)]' : 'text-gray-700'}`}
                             >
-                                <div className="flex items-center gap-3">
-                                    {currentLanguage === lang ? (
-                                        <div className="w-1.5 h-1.5 bg-[var(--primary-color)] rounded-full"></div>
-                                    ) : (
-                                        <div className="w-1.5 h-1.5 bg-transparent"></div>
-                                    )}
-                                    <span>{languageData[lang]?.label || lang.toUpperCase()}</span>
-                                </div>
-                                {currentLanguage === lang && <Check className="w-4 h-4 text-[var(--primary-color)]" />}
+                                {getLangLabel(lang)}
+                                {currentLanguage === lang && (
+                                    <div className="w-1.5 h-1.5 bg-[var(--primary-color)]"></div>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -2070,7 +2159,7 @@ export const PreviewArea: React.FC = () => {
         <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative">
 
             {/* Main Website Frame */}
-            <div className="flex-1 overflow-y-auto admin-scroll bg-white relative" style={{ backgroundColor: 'var(--bg-body)' }}>
+            <div id="preview-main-scroll" className="flex-1 overflow-y-auto admin-scroll bg-white relative" style={{ backgroundColor: 'var(--bg-body)' }}>
 
                 {/* Site Header */}
                 <header
@@ -2173,15 +2262,18 @@ export const PreviewArea: React.FC = () => {
                                                 {getGlobalTranslation(`footer_col_${col.id}`, translationItems, currentLanguage, col.title)}
                                             </h5>
                                             <ul className="space-y-2 opacity-70" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
-                                                {col.links.map(link => (
-                                                    <li key={link.id}><a
-                                                        href={link.url}
-                                                        className="hover:underline"
-                                                        onClick={(e) => handleInternalLink(e, link.url)}
-                                                    >
-                                                        {getGlobalTranslation(`footer_link_${link.id}`, translationItems, currentLanguage, link.label)}
-                                                    </a></li>
-                                                ))}
+                                                {col.links.map(link => {
+                                                    const cleanUrl = transformSharePointUrl(link.url);
+                                                    return (
+                                                        <li key={link.id}><a
+                                                            href={cleanUrl}
+                                                            className="hover:underline"
+                                                            onClick={(e) => handleInternalLink(e, cleanUrl)}
+                                                        >
+                                                            {getGlobalTranslation(`footer_link_${link.id}`, translationItems, currentLanguage, link.label)}
+                                                        </a></li>
+                                                    );
+                                                })}
                                             </ul>
                                         </div>
                                     ))}
@@ -2313,18 +2405,21 @@ export const PreviewArea: React.FC = () => {
                                         <div className="flex flex-col items-start gap-2">
                                             <div className="flex items-center gap-1 text-sm text-[#254784]">
                                                 {(footerConfig?.bottomLinks && footerConfig.bottomLinks.length > 0) ? (
-                                                    footerConfig.bottomLinks.map((link: any, idx: number) => (
-                                                        <React.Fragment key={link.id}>
-                                                            <a
-                                                                href={link.url || '#'}
-                                                                className="hover:text-[#254784] transition-colors whitespace-nowrap px-1"
-                                                                onClick={(e) => handleInternalLink(e, link.url || '#')}
-                                                            >
-                                                                {link.label}
-                                                            </a>
-                                                            {idx < (footerConfig.bottomLinks?.length || 0) - 1 && <span className="opacity-40">/</span>}
-                                                        </React.Fragment>
-                                                    ))
+                                                    footerConfig.bottomLinks.map((link: any, idx: number) => {
+                                                        const cleanUrl = transformSharePointUrl(link.url || '#');
+                                                        return (
+                                                            <React.Fragment key={link.id}>
+                                                                <a
+                                                                    href={cleanUrl}
+                                                                    className="hover:text-[#254784] transition-colors whitespace-nowrap px-1"
+                                                                    onClick={(e) => handleInternalLink(e, cleanUrl)}
+                                                                >
+                                                                    {link.label}
+                                                                </a>
+                                                                {idx < (footerConfig.bottomLinks?.length || 0) - 1 && <span className="opacity-40">/</span>}
+                                                            </React.Fragment>
+                                                        );
+                                                    })
                                                 ) : (
                                                     <div className="flex items-center gap-2 opacity-60">
                                                         <a href="#" className="hover:text-[#254784] transition-colors">{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
