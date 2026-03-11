@@ -975,7 +975,7 @@ export const useStore = create<AppState>()(
       uiLabels: INITIAL_UI_LABELS,
       editingLabelKey: null,
       editingContainerId: null,
-      isLoading: false,
+      isLoading: true,
       translationSources: [
         'TopNavigation',
         'SmartPages',
@@ -1180,6 +1180,8 @@ export const useStore = create<AppState>()(
             });
           }
 
+
+
           const loadedTranslationItems = spTranslations.map((t: any) => ({
             id: t.Title,
             sourceList: t.SourceList || 'General',
@@ -1243,7 +1245,7 @@ export const useStore = create<AppState>()(
           const transformedPages = filteredPages.map((p: any) => ({
             id: p.id,
             title: p.MultilingualTitle ? safeParse(p.MultilingualTitle) : { en: p.Title },
-            slug: p.Slug || '/',
+            slug: (p.Slug ? (p.Slug.startsWith('/') ? p.Slug : '/' + p.Slug) : '/').replace(/\/$/, '') || '/',
             status: p.PageStatus || 'Draft',
             createdBy: p.Author?.Title || 'System',
             modifiedBy: p.Editor?.Title || 'System',
@@ -1377,7 +1379,7 @@ export const useStore = create<AppState>()(
             btnEnabled: item.BtnEnabled || false,
             btnName: item.BtnName || '',
             btnLinkType: item.BtnLinkType || 'url',
-            btnUrl: item.BtnUrl || '',
+            btnUrl: transformSharePointUrl(item.BtnUrl) || '',
             btnContainerId: item.BtnContainerId || '',
             createdBy: item.Author?.Title || 'System',
             modifiedBy: item.Editor?.Title || 'System',
@@ -1404,7 +1406,7 @@ export const useStore = create<AppState>()(
             btnEnabled: item.BtnEnabled || false,
             btnName: item.BtnName || '',
             btnLinkType: item.BtnLinkType || 'url',
-            btnUrl: item.BtnUrl || '',
+            btnUrl: transformSharePointUrl(item.BtnUrl) || '',
             btnContainerId: item.BtnContainerId || '',
             translations: cleanTranslations(item.Translations),
             createdBy: item.Author?.Title || 'System',
@@ -1481,13 +1483,27 @@ export const useStore = create<AppState>()(
           /* ================= FINAL STORE UPDATE ================= */
 
           // Intelligently determine initial page ID to prevent Home redirect on refresh
-          const currentPath = window.location.pathname;
-          const pathPage = transformedPages.find((p: any) => p.slug === currentPath || (currentPath === '/' && p.slug === '/'));
+          const fullPath = window.location.pathname;
+          const currentPath = fullPath.toLowerCase().replace(/\/$/, '') || '/';
+
+          const pathPage = transformedPages.find((p: any) => {
+            const normalizedSlug = (p.slug || '/').toLowerCase().replace(/\/$/, '') || '/';
+            return normalizedSlug === currentPath;
+          });
 
           const existingId = get().currentPageId;
           const isExistingValid = transformedPages.some((p: any) => p.id === existingId);
 
-          const finalPageId = pathPage?.id || (isExistingValid ? existingId : (defaultPageId || '1'));
+          const finalPageId = pathPage?.id || (isExistingValid ? existingId : (defaultPageId || (transformedPages[0]?.id || '1')));
+
+          console.log('🎯 Final Initial Page Decision:', {
+            currentPath,
+            foundByPath: pathPage?.id,
+            existingId,
+            isExistingValid,
+            defaultPageId,
+            finalPageId
+          });
 
           set({
             pages: transformedPages,
@@ -1815,6 +1831,18 @@ export const useStore = create<AppState>()(
     }
   )
 );
+
+export const transformSharePointUrl = (url: string) => {
+  if (!url) return url;
+  // Handle SharePoint style URLs that use '#' for client-side routing
+  if (url.includes('.sharepoint.com') && url.includes('#')) {
+    const parts = url.split('#');
+    if (parts.length > 1) {
+      return parts[1]; // Extract the path/slug part after '#'
+    }
+  }
+  return url;
+};
 
 export const getTranslation = (key: string, lang: LanguageCode): string => {
   const uiLabels = useStore.getState().uiLabels;

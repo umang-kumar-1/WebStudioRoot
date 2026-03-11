@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
     useStore, getLocalizedText, getItemTranslation, getGlobalTranslation, getTranslation,
-    GLOBAL_DEFAULT_IMAGE,
+    GLOBAL_DEFAULT_IMAGE, transformSharePointUrl
 } from '../store 2';
 import { ContainerType, ViewMode, ModalType } from '../types';
 import type { NavItem, ContactQuery, LanguageCode } from '../types';
@@ -34,17 +34,7 @@ const stripHtml = (html: string) => {
     return tmp.textContent || tmp.innerText || "";
 };
 
-const transformSharePointUrl = (url: string) => {
-    if (!url) return url;
-    // Handle SharePoint style URLs that use '#' for client-side routing
-    if (url.includes('.sharepoint.com') && url.includes('#')) {
-        const parts = url.split('#');
-        if (parts.length > 1) {
-            return parts[1]; // Extract the path/slug part after '#'
-        }
-    }
-    return url;
-};
+
 
 
 
@@ -259,7 +249,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                     ) : settings.btnUrl ? (
                         /* ---- URL Mode ---- */
                         <a
-                            href={settings.btnUrl}
+                            href={transformSharePointUrl(settings.btnUrl)}
                             target={settings.btnUrl.startsWith('http') ? '_blank' : '_self'}
                             rel={settings.btnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
                             className="inline-block px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
@@ -576,7 +566,7 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                                     <div className={`leading-relaxed mb-8 max-w-2xl ${activeSlide.layout === 'text_overlay' || activeSlide.layout === 'solid_color' ? 'text-white opacity-80' : 'text-gray-700'}`} style={descStyle} dangerouslySetInnerHTML={{ __html: getLocalizedText(activeSlide.desc, lang) }} />
                                 )}
                                 {activeSlide.cta && (
-                                    <a href={activeSlide.url || '#'} className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold tracking-wide rounded-sm shadow-md hover:opacity-90">{getLocalizedText(activeSlide.cta, lang)}</a>
+                                    <a href={transformSharePointUrl(activeSlide.url || '#')} className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold tracking-wide rounded-sm shadow-md hover:opacity-90">{getLocalizedText(activeSlide.cta, lang)}</a>
                                 )}
 
                                 {/* Edit Button for the slide */}
@@ -761,7 +751,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
         }
 
         const taggedIds = settings.taggedItems || [];
-        return taggedIds.map((id: string) => all.find(i => i.id === id)).filter(Boolean);
+        return taggedIds.length > 0
+            ? taggedIds.map((id: string) => all.find(i => i.id === id)).filter(Boolean)
+            : all;
     }, [settings.source, settings.taggedItems, lang, news, events, documents, pages, contacts, containerItems]);
 
     useEffect(() => {
@@ -815,7 +807,7 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
         }
     }, [isSlider, settings.autoplay, settings.speed]);
 
-    const borderClass = settings.border === 'rounded' || settings.border === 'Rounded' ? 'rounded-md' : (settings.border === 'circle' || settings.border === 'Circle' ? 'rounded-xl' : 'rounded-none');
+    const borderClass = (settings.border === 'rounded' || settings.border === 'Rounded') ? 'rounded-lg' : (settings.border === 'circle' || settings.border === 'Circle' ? 'rounded-xl' : 'rounded-none');
 
     // Helper: Convert number to Roman Numeral
     const toRoman = (num: number): string => {
@@ -833,7 +825,9 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
     // Helper: Get Label based on ordering type
     const getOrderedLabel = (index: number): string => {
         const n = index + 1;
-        switch (settings.ordering) {
+        // Default to '123' format when no ordering explicitly set
+        const ordering = settings.ordering || '123';
+        switch (ordering) {
             case '123': return n.toString().padStart(2, '0');
             case 'III': return toRoman(n);
             case 'IIIII': return 'I'.repeat(n);
@@ -846,12 +840,10 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
     const renderActionButton = (item: any, idx: number, isOldLayout = false) => {
         const o = item.originalItem;
-        const classes = isOldLayout
-            ? "text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
-            : "text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto";
-
         const hasAction = o && o.btnEnabled && o.btnName;
+
         if (hasAction) {
+            const btnClasses = `w-max self-center mx-auto px-6 py-2.5 bg-[var(--primary-color)] text-white font-bold text-xs rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
             if (o.btnLinkType === 'container' && o.btnContainerId) {
                 return (
                     <button
@@ -860,27 +852,30 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                             const targetEl = document.getElementById(`container-${o.btnContainerId}`);
                             if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }}
-                        className={classes}
+                        className={btnClasses}
                     >
-                        <span>{o.btnName}</span>
-                        <ChevronRight className={isOldLayout ? "w-3 h-3" : "w-3 h-3 ml-0.5"} />
+                        {o.btnName}
                     </button>
                 );
             } else if (o.btnUrl) {
+                const cleanBtnUrl = transformSharePointUrl(o.btnUrl);
                 return (
                     <a
-                        href={o.btnUrl}
-                        target={o.btnUrl.startsWith('http') ? '_blank' : '_self'}
-                        rel={o.btnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        href={cleanBtnUrl}
+                        target={cleanBtnUrl.startsWith('http') ? '_blank' : '_self'}
+                        rel={cleanBtnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
                         onClick={(e) => e.stopPropagation()}
-                        className={classes}
+                        className={btnClasses}
                     >
-                        <span>{o.btnName}</span>
-                        <ChevronRight className={isOldLayout ? "w-3 h-3" : "w-3 h-3 ml-0.5"} />
+                        {o.btnName}
                     </a>
                 );
             }
         }
+
+        const fallbackClasses = isOldLayout
+            ? "text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
+            : "text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto";
 
         return (
             <button
@@ -888,13 +883,17 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                     e.stopPropagation();
                     setActiveReadMoreItem({ item, index: idx });
                 }}
-                className={classes}
+                className={fallbackClasses}
             >
                 <span>{getTranslation('BTN_READ_MORE', lang)}</span>
-                <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                    {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : (!isOldLayout && <Info className="w-3 h-3" />)}
+                {isOldLayout ? (
                     <ChevronRight className="w-3 h-3" />
-                </div>
+                ) : (
+                    <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
+                        {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
+                        <ChevronRight className="w-3 h-3" />
+                    </div>
+                )}
             </button>
         );
     };
@@ -1863,20 +1862,48 @@ const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => 
 const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { siteConfig } = useStore();
     const themeConfig = (siteConfig as any).themeConfig || {};
-    const title = getLocalizedText(container.content?.title, lang);
-    const body = container.settings?.body || '';
+    const { settings, content } = container;
+    const title = getLocalizedText(content?.title, lang);
+    const body = settings?.body || '';
+
+    // Resolve background color
+    const bgType = String(settings?.bgType || '').toLowerCase();
+    const resolvedBg = (() => {
+        if (bgType === 'color') return settings?.bgColor || settings?.backgroundColor || '#ffffff';
+        if (bgType === 'site-color' || bgType === 'site' || bgType === 'sitecolor') return 'var(--bg-body)';
+        return 'transparent'; // 'none' or default
+    })();
+
+    // Resolve title color
+    const titleColorType = String(settings?.titleColorType || '').toLowerCase();
+    const resolvedTitleColor = (() => {
+        if (titleColorType === 'site-color' || titleColorType === 'site' || titleColorType === 'sitecolor')
+            return themeConfig['--primary-color'] || 'var(--primary-color)';
+        if (titleColorType === 'color') return settings?.titleColor || (themeConfig['--primary-color'] || 'var(--primary-color)');
+        // 'none' or default: fall back to primary color
+        return themeConfig['--primary-color'] || 'var(--primary-color)';
+    })();
+
+    // Resolve title border color
+    const titleBorderColor = titleColorType === 'none' ? 'transparent' : resolvedTitleColor;
+
+    // Resolve alignment
+    const alignment = String(settings?.alignment || settings?.align || 'left').toLowerCase();
 
     return (
-        <div className="w-full py-10 px-2" style={{ backgroundColor: 'var(--bg-body, #fff)' }}>
+        <div className="w-full py-10 px-2" style={{ backgroundColor: bgType === 'image' ? 'transparent' : 'var(--bg-body, #fff)' }}>
             <div className="max-w-7xl mx-auto px-4">
                 {title && (
                     <h1
                         className="font-bold uppercase tracking-wider mb-6 pb-3"
                         style={{
-                            color: themeConfig['--primary-color'] || 'var(--primary-color)',
-                            borderBottom: `2px solid ${themeConfig['--primary-color'] || 'var(--primary-color)'}`,
+                            color: resolvedTitleColor,
+                            backgroundColor: resolvedBg,
+                            borderBottom: `2px solid ${titleBorderColor}`,
                             fontSize: themeConfig['--font-size-h2'] || '1.5rem',
-                            fontFamily: themeConfig['--font-family-base'] || 'inherit'
+                            fontFamily: themeConfig['--font-family-base'] || 'inherit',
+                            textAlign: alignment === 'center' ? 'center' : 'left',
+                            padding: resolvedBg !== 'transparent' ? '1rem' : '0 0 0.75rem 0'
                         }}
                     >
                         {title}
@@ -1890,7 +1917,8 @@ const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRende
                             fontSize: themeConfig['--font-size-base'] || '1rem',
                             color: themeConfig['--text-primary'] || '#333',
                             lineHeight: '1.8',
-                            fontWeight: 500
+                            fontWeight: 500,
+                            textAlign: alignment === 'center' ? 'center' : 'left'
                         }}
                         dangerouslySetInnerHTML={{ __html: body }}
                     />
@@ -2131,8 +2159,12 @@ export const PreviewArea: React.FC = () => {
     // 2. Sync URL Path -> App State (URL as Source of Truth)
     useEffect(() => {
         if (pages.length > 0) {
-            const path = location.pathname;
-            const targetPage = pages.find(p => p.slug === path || (path === '/' && p.slug === '/'));
+            const fullPath = location.pathname;
+            const path = fullPath.toLowerCase().replace(/\/$/, '') || '/';
+            const targetPage = pages.find(p => {
+                const normalizedSlug = (p.slug || '/').toLowerCase().replace(/\/$/, '') || '/';
+                return normalizedSlug === path;
+            });
 
             if (targetPage && targetPage.id !== currentPageId) {
                 console.log('🔄 Syncing URL to State:', path, '->', targetPage.id);
@@ -2143,12 +2175,12 @@ export const PreviewArea: React.FC = () => {
 
     // 3. Sync App State -> URL Path (State as Source of Truth)
     useEffect(() => {
-        if (pages.length > 0) {
+        if (pages.length > 0 && !isLoading) {
             const activePage = pages.find(p => p.id === currentPageId);
             if (activePage && activePage.slug !== location.pathname) {
                 // Check if normalizing slug helps (removing trailing slashes)
-                const normalizedActive = activePage.slug.replace(/\/$/, '') || '/';
-                const normalizedCurrent = location.pathname.replace(/\/$/, '') || '/';
+                const normalizedActive = (activePage.slug || '/').toLowerCase().replace(/\/$/, '') || '/';
+                const normalizedCurrent = location.pathname.toLowerCase().replace(/\/$/, '') || '/';
 
                 if (normalizedActive !== normalizedCurrent) {
                     console.log('🔄 Syncing State to URL:', currentPageId, '->', activePage.slug);
@@ -2158,7 +2190,15 @@ export const PreviewArea: React.FC = () => {
         }
     }, [currentPageId]); // Primary dependency is currentPageId
 
-    const activePage = useMemo(() => pages.find(p => p.id === currentPageId) || (pages.length > 0 ? pages[0] : null), [pages, currentPageId]);
+    const activePage = useMemo(() => {
+        const found = pages.find(p => p.id === currentPageId);
+        if (found) return found;
+        if (pages.length > 0) {
+            console.log('⚠️ Page ID', currentPageId, 'not found. Available slugs:', pages.map(p => p.slug));
+            return pages[0]; // Fallback to first page instead of showing blank
+        }
+        return null;
+    }, [pages, currentPageId]);
 
     const sortedContainers = useMemo(() => {
         if (!activePage) return [];
@@ -2196,7 +2236,11 @@ export const PreviewArea: React.FC = () => {
         const normalizedUrl = url.startsWith('/') ? `${siteUrl}${url === '/' ? '' : url}` : url;
         if (normalizedUrl.startsWith(siteUrl)) {
             const path = normalizedUrl.replace(siteUrl, '') || '/';
-            const targetPage = pages.find(p => p.slug === path || (path === '/' && p.slug === '/'));
+            const targetPage = pages.find(p => {
+                const normalizedSlug = (p.slug || '/').replace(/\/$/, '') || '/';
+                const normalizedPath = (path || '/').replace(/\/$/, '') || '/';
+                return normalizedSlug === normalizedPath;
+            });
             if (targetPage) {
                 e.preventDefault();
                 setCurrentPage(targetPage.id);
