@@ -1210,7 +1210,11 @@ export const useStore = create<AppState>()(
             }
             if (c.BtnEnabled !== undefined && c.BtnEnabled !== null) parsedSettings.btnEnabled = c.BtnEnabled;
             if (c.BtnName) parsedSettings.btnName = c.BtnName;
+            if (c.BtnLinkType) parsedSettings.btnLinkType = c.BtnLinkType;
             if (c.BtnUrl) parsedSettings.btnUrl = c.BtnUrl;
+            if (c.BtnContainerId) parsedSettings.btnContainerId = c.BtnContainerId;
+            if (c.BtnTargetContainerTitle) parsedSettings.btnTargetContainerTitle = c.BtnTargetContainerTitle;
+            if (c.BtnConfig) parsedSettings.btnConfig = safeParse(c.BtnConfig, {});
 
             const parsedContent = safeParse(c.ContainerContent, {});
             if (parsedContent.translations) {
@@ -1379,8 +1383,10 @@ export const useStore = create<AppState>()(
             btnEnabled: item.BtnEnabled || false,
             btnName: item.BtnName || '',
             btnLinkType: item.BtnLinkType || 'url',
-            btnUrl: transformSharePointUrl(item.BtnUrl) || '',
+            btnUrl: item.BtnUrl || '',
             btnContainerId: item.BtnContainerId || '',
+            btnTargetContainerTitle: item.BtnTargetContainerTitle || '',
+            btnConfig: item.BtnConfig ? safeParse(item.BtnConfig, {}) : {},
             createdBy: item.Author?.Title || 'System',
             modifiedBy: item.Editor?.Title || 'System',
             createdDate: item.Created,
@@ -1406,8 +1412,10 @@ export const useStore = create<AppState>()(
             btnEnabled: item.BtnEnabled || false,
             btnName: item.BtnName || '',
             btnLinkType: item.BtnLinkType || 'url',
-            btnUrl: transformSharePointUrl(item.BtnUrl) || '',
+            btnUrl: item.BtnUrl || '',
             btnContainerId: item.BtnContainerId || '',
+            btnTargetContainerTitle: item.BtnTargetContainerTitle || '',
+            btnConfig: item.BtnConfig ? safeParse(item.BtnConfig, {}) : {},
             translations: cleanTranslations(item.Translations),
             createdBy: item.Author?.Title || 'System',
             modifiedBy: item.Editor?.Title || 'System',

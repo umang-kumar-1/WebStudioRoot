@@ -195,6 +195,15 @@ export interface ContainerItem {
     btnLinkType?: 'url' | 'container';
     btnUrl?: string;
     btnContainerId?: string;
+    btnTargetContainerTitle?: string;
+    btnConfig?: Record<string, {
+        btnEnabled?: boolean;
+        btnName?: string;
+        btnLinkType?: 'url' | 'container';
+        btnUrl?: string;
+        btnContainerId?: string;
+        btnTargetContainerTitle?: string;
+    }>;
 }
 
 export interface ContactItem {
@@ -228,6 +237,15 @@ export interface ContactItem {
     btnLinkType?: 'url' | 'container';
     btnUrl?: string;
     btnContainerId?: string;
+    btnTargetContainerTitle?: string;
+    btnConfig?: Record<string, {
+        btnEnabled?: boolean;
+        btnName?: string;
+        btnLinkType?: 'url' | 'container';
+        btnUrl?: string;
+        btnContainerId?: string;
+        btnTargetContainerTitle?: string;
+    }>;
 }
 
 export interface SliderItem {
@@ -340,6 +358,12 @@ export interface Container {
     title?: string; // Container Title (metadata)
     isVisible: boolean;
     status?: 'Draft' | 'Published';
+    btnEnabled?: boolean;
+    btnName?: string;
+    btnLinkType?: 'url' | 'container';
+    btnUrl?: string;
+    btnContainerId?: string;
+    btnTargetContainerTitle?: string;
 }
 
 export interface Page {

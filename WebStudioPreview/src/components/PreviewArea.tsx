@@ -160,9 +160,9 @@ const getDocIcon = (type: string) => {
 };
 
 const getSocialIcon = (type: string) => {
-    const iconStyle = { color: '#ffffff', width: '20px', height: '20px' };
+    const iconStyle = { color: 'var(--text-on-primary)', width: '20px', height: '20px' };
     const containerClass = "w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm";
-    const bgStyle = { backgroundColor: '#254784' };
+    const bgStyle = { backgroundColor: 'var(--primary-color)' };
 
     switch (type) {
         case 'Facebook': return <div className={containerClass} style={bgStyle}><Facebook style={iconStyle} strokeWidth={2.5} /></div>;
@@ -173,8 +173,8 @@ const getSocialIcon = (type: string) => {
     }
 };
 
-const getContactIcon = (type: string) => {
-    const style = { color: '#254784' };
+const getContactIcon = (type: string, color: string = 'var(--primary-color)') => {
+    const style = { color: color };
     switch (type) {
         case 'Email': return <Mail className="w-5 h-5" style={style} />;
         case 'Phone': return <Phone className="w-5 h-5" style={style} />;
@@ -183,23 +183,27 @@ const getContactIcon = (type: string) => {
     }
 };
 
+const resolveColor = (colorSetting?: string, customHex?: string, defaultColor: string = 'text-[var(--primary-color)]'): { className?: string; style?: React.CSSProperties } => {
+    if (!colorSetting || colorSetting === 'site' || colorSetting === 'site-color')
+        return { className: 'text-[var(--primary-color)]' };
+    if (colorSetting === 'color' && customHex) return { style: { color: customHex } };
+    if (colorSetting === 'white') return { className: 'text-white' };
+    if (colorSetting === 'black') return { className: 'text-black' };
+    // Fallback to the provided defaultColor (usually primary, but can be gray/black for desc)
+    return { className: defaultColor };
+};
+
 interface ComponentRendererProps {
     container: any;
     lang: LanguageCode;
     pageTitle?: string;
+    onInternalLink: (e: React.MouseEvent, url: string) => void;
 }
 
 // --- RENDERER 1: HEADER / HERO ---
-const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings, content } = container;
-
-    // Resolve color for a given color setting (site/black/white/custom)
-    const resolveColor = (colorSetting: string, customHex?: string): { className?: string; style?: React.CSSProperties } => {
-        if (colorSetting === 'custom' && customHex) return { style: { color: customHex } };
-        if (colorSetting === 'white') return { className: 'text-white' };
-        if (colorSetting === 'black') return { className: 'text-black' };
-        return { className: 'text-[var(--primary-color)]' }; // 'site' or default
-    };
+    const { pages, currentPageId } = useStore();
 
     const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor);
     const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor);
@@ -233,32 +237,61 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 
             {settings.btnEnabled && settings.btnName && (
                 <div className={`mt-8 ${settings.align === 'center' ? 'flex justify-center' : (settings.align === 'right' ? 'flex justify-end' : '')}`}>
-                    {settings.btnLinkType === 'container' && settings.btnContainerId ? (
-                        /* ---- Container Scroll Mode ---- */
-                        <button
-                            onClick={() => {
-                                const targetEl = document.getElementById(`container-${settings.btnContainerId}`);
-                                if (targetEl) {
-                                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }
-                            }}
-                            className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
-                        >
-                            {settings.btnName}
-                        </button>
-                    ) : settings.btnUrl ? (
-                        /* ---- URL Mode ---- */
-                        <a
-                            href={transformSharePointUrl(settings.btnUrl)}
-                            target={settings.btnUrl.startsWith('http') ? '_blank' : '_self'}
-                            rel={settings.btnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
-                            className="inline-block px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
-                        >
-                            {settings.btnName}
-                        </a>
-                    ) : (
+                    {settings.btnLinkType === 'container' && (settings.btnContainerId || settings.btnTargetContainerTitle) ? (() => {
+                        let targetPage = null;
+                        if (settings.btnContainerId && settings.btnContainerId !== 'custom') {
+                            targetPage = pages.find(p => p.containers?.some(c => c.id === settings.btnContainerId));
+                        } else if (settings.btnTargetContainerTitle) {
+                            targetPage = pages.find(p => p.containers?.some(c => c.title === settings.btnTargetContainerTitle));
+                        }
+
+                        const isSamePage = !targetPage || targetPage.id === currentPageId;
+                        const pageSlug = targetPage?.slug || '';
+                        const anchor = settings.btnTargetContainerTitle ? encodeURIComponent(settings.btnTargetContainerTitle) : (settings.btnContainerId ? 'container-' + settings.btnContainerId : '');
+                        const finalUrl = `${pageSlug.startsWith('/') ? pageSlug : '/' + pageSlug}${anchor ? '#' + anchor : ''}`;
+
+                        return (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isSamePage) {
+                                        let targetEl = null;
+                                        if (settings.btnTargetContainerTitle) {
+                                            targetEl = document.querySelector(`[data-container-title="${settings.btnTargetContainerTitle}"]`);
+                                        }
+                                        if (!targetEl && settings.btnContainerId) {
+                                            targetEl = document.getElementById(`container-${settings.btnContainerId}`);
+                                        }
+                                        if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    } else {
+                                        onInternalLink(e, finalUrl);
+                                    }
+                                }}
+                                className="px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
+                            >
+                                {settings.btnName}
+                            </button>
+                        );
+                    })() : settings.btnUrl ? (() => {
+                        const cleanBtnUrl = transformSharePointUrl(settings.btnUrl);
+                        return (
+                            <a
+                                href={cleanBtnUrl}
+                                target={settings.btnUrl.startsWith('http') ? '_blank' : '_self'}
+                                rel={settings.btnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+                                onClick={(e) => {
+                                    if (!settings.btnUrl.startsWith('http')) {
+                                        onInternalLink(e, cleanBtnUrl);
+                                    }
+                                }}
+                                className="inline-block px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
+                            >
+                                {settings.btnName}
+                            </a>
+                        );
+                    })() : (
                         /* ---- No Link configured (placeholder) ---- */
-                        <button className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
+                        <button className="px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
                             {settings.btnName}
                         </button>
                     )}
@@ -286,7 +319,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                     )}
                 </div>
                 {/* Text Side */}
-                <div className={`w-full md:w-1/2 flex items-center justify-center p-12 ${settings.bgColor ? '' : 'bg-white'}`} style={{ backgroundColor: settings.bgColor || 'white' }}>
+                <div className={`w-full md:w-1/2 flex items-center justify-center p-12 ${settings.bgColor ? '' : 'bg-[var(--bg-surface)]'}`} style={{ backgroundColor: settings.bgColor || 'var(--bg-surface)' }}>
                     <div className={textAlign}>
                         <ContentBlock />
                     </div>
@@ -297,7 +330,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 
     // Standard Styles
     const bgStyle: React.CSSProperties = {
-        backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'gray'),
+        backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'var(--bg-body)'),
         minHeight: settings.minHeight === 'full' ? '100vh' : '600px',
     };
 
@@ -315,7 +348,7 @@ const HeaderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 });
 
 // --- RENDERER 2: SLIDER ---
-const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInternalLink }: ComponentRendererProps) => {
     const tmplId = container.settings.templateId;
     const [current, setCurrent] = useState(0);
     const [editingSlide, setEditingSlide] = useState<any | null>(null);
@@ -380,6 +413,11 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
     const subtitleStyle: React.CSSProperties = container.settings.subtitleFontSize ? { fontSize: `${container.settings.subtitleFontSize}px` } : {};
     const descStyle: React.CSSProperties = container.settings.descFontSize ? { fontSize: `${container.settings.descFontSize}px` } : {};
 
+    // Resolve specific typography colors for Slider
+    const slideTitleColor = resolveColor(container.settings.titleColor, container.settings.titleCustomColor);
+    const slideSubtitleColor = resolveColor(container.settings.subtitleColor || container.settings.titleColor, container.settings.subtitleCustomColor || container.settings.titleCustomColor);
+    const slideDescColor = resolveColor(container.settings.descColor || container.settings.titleColor, container.settings.descCustomColor || container.settings.titleCustomColor);
+
     const next = () => { if (current < dynamicSlides.length - 1) setCurrent((p) => p + 1); };
     const prev = () => { if (current > 0) setCurrent((p) => p - 1); };
 
@@ -432,22 +470,13 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
                         <div className="flex-1 space-y-6">
                             {showTitle && (
                                 <div className="flex items-center gap-2 group/slide">
-                                    <h2 className="font-bold text-gray-800" style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h2>
-                                    {/* {activeSlide.originalItem && (
-                                        <button
-                                            onClick={() => setEditingSlide(activeSlide.originalItem)}
-                                            className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
-                                            title="Edit slide"
-                                        >
-                                            <Pencil className="w-4 h-4 text-gray-400" />
-                                        </button>
-                                    )} */}
+                                    <h2 className={`font-bold ${slideTitleColor.className || ''}`} style={{ ...titleStyle, ...slideTitleColor.style }}>{getLocalizedText(activeSlide.title, lang)}</h2>
                                 </div>
                             )}
                             {showDesc && (
                                 <>
-                                    {showSubtitleSeparately && renderRichText(slideSubtitle, "font-medium text-gray-500 text-left")}
-                                    {slideDesc && renderRichText(slideDesc, "leading-relaxed text-gray-600 text-left")}
+                                    {showSubtitleSeparately && renderRichText(slideSubtitle, `font-medium ${slideSubtitleColor.className || ''}`, { ...subtitleStyle, ...slideSubtitleColor.style })}
+                                    {slideDesc && renderRichText(slideDesc, `leading-relaxed ${slideDescColor.className || ''}`, { ...descStyle, ...slideDescColor.style })}
                                 </>
                             )}
                             {activeSlide.cta && (
@@ -646,13 +675,14 @@ const SliderRenderer = React.memo(({ container, lang }: ComponentRendererProps) 
 });
 
 // --- RENDERER 3: DATA GRID ---
-const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings } = container;
     const {
         news, events, documents, pages, containerItems, contacts,
         updateNews, updateEvent, updateDocument, updateContainerItem, updateContact, updatePage,
         deleteNews, deleteEvent, deleteDocument, deleteContainerItem, deleteContact, deletePage,
         setCurrentPage,
+        currentPageId,
         viewMode
     } = useStore();
     const isSlider = settings.layout === 'slider';
@@ -840,34 +870,81 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 
     const renderActionButton = (item: any, idx: number, isOldLayout = false) => {
         const o = item.originalItem;
-        const hasAction = o && o.btnEnabled && o.btnName;
+        let btnEnabled = o?.btnEnabled;
+        let btnName = o?.btnName;
+        let btnLinkType = o?.btnLinkType || 'url';
+        let btnUrl = o?.btnUrl;
+        let btnContainerId = o?.btnContainerId;
+        let btnTargetContainerTitle = o?.btnTargetContainerTitle;
+
+        if (o?.btnConfig && o.btnConfig[container.id]) {
+            const config = o.btnConfig[container.id];
+            btnEnabled = config.btnEnabled;
+            btnName = config.btnName;
+            btnLinkType = config.btnLinkType || 'url';
+            btnUrl = config.btnUrl;
+            btnContainerId = config.btnContainerId;
+            btnTargetContainerTitle = config.btnTargetContainerTitle;
+        }
+
+        const hasAction = btnEnabled && btnName;
 
         if (hasAction) {
-            const btnClasses = `w-max self-center mx-auto px-6 py-2.5 bg-[var(--primary-color)] text-white font-bold text-xs rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
-            if (o.btnLinkType === 'container' && o.btnContainerId) {
+            const btnClasses = `w-max self-center mx-auto px-6 py-2.5 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-xs rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
+            if (btnLinkType === 'container' && (btnContainerId || btnTargetContainerTitle)) {
+                let targetPage = null;
+                if (btnContainerId && btnContainerId !== 'custom') {
+                    targetPage = pages.find(p => p.containers?.some(c => c.id === btnContainerId));
+                } else if (btnTargetContainerTitle) {
+                    targetPage = pages.find(p => p.containers?.some(c => c.title === btnTargetContainerTitle));
+                }
+
+                const isSamePage = targetPage?.id === currentPageId;
+                const pageSlug = targetPage?.slug || '';
+                const anchor = btnTargetContainerTitle ? encodeURIComponent(btnTargetContainerTitle) : (btnContainerId ? 'container-' + btnContainerId : '');
+                const finalUrl = `${pageSlug.startsWith('/') ? pageSlug : '/' + pageSlug}${anchor ? '#' + anchor : ''}`;
+
                 return (
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            const targetEl = document.getElementById(`container-${o.btnContainerId}`);
-                            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            if (isSamePage) {
+                                let targetEl = null;
+                                if (btnTargetContainerTitle) {
+                                    targetEl = document.querySelector(`[data-container-title="${btnTargetContainerTitle}"]`);
+                                }
+                                if (!targetEl && btnContainerId) {
+                                    targetEl = document.getElementById(`container-${btnContainerId}`);
+                                }
+                                if (targetEl) {
+                                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            } else {
+                                onInternalLink(e, finalUrl);
+                            }
                         }}
                         className={btnClasses}
                     >
-                        {o.btnName}
+                        {btnName}
                     </button>
                 );
-            } else if (o.btnUrl) {
-                const cleanBtnUrl = transformSharePointUrl(o.btnUrl);
+            } else if (btnUrl) {
+                const cleanBtnUrl = transformSharePointUrl(btnUrl);
                 return (
                     <a
                         href={cleanBtnUrl}
                         target={cleanBtnUrl.startsWith('http') ? '_blank' : '_self'}
                         rel={cleanBtnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                            if (!cleanBtnUrl.startsWith('http')) {
+                                onInternalLink(e, cleanBtnUrl);
+                            } else {
+                                e.stopPropagation();
+                            }
+                        }}
                         className={btnClasses}
                     >
-                        {o.btnName}
+                        {btnName}
                     </a>
                 );
             }
@@ -928,19 +1005,20 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
                         settings.align === 'right' ? 'text-right' :
                             'text-left'
                         }`}>
-                        <h2 className="font-bold text-[var(--primary-color)] tracking-tight" style={{ ...titleStyle, fontFamily: 'var(--font-family-secondary)' }}>
+                        <h2 className={`font-bold tracking-tight ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`} style={{ ...titleStyle, fontFamily: 'var(--font-family-secondary)', ...resolveColor(settings.titleColor, settings.titleCustomColor).style }}>
                             {getLocalizedText(container.content.title, lang)}
                         </h2>
                         {(settings.showSubheading !== false) && settings.subheading && (
-                            <p className={`text-lg text-gray-500 font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''}`} style={subtitleStyle}>
+                            <p className={`text-lg font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor).className || ''}`}
+                                style={{ ...subtitleStyle, ...resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor).style }}>
                                 {getLocalizedText(settings.subheading, lang) || settings.subheading}
                             </p>
                         )}
                         {(settings.showDescription !== false) && settings.description && (
                             renderRichText(
                                 getLocalizedText(settings.description, lang) || settings.description,
-                                `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''}`,
-                                descStyle
+                                `text-sm leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor).className || ''}`,
+                                { ...descStyle, ...resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor).style }
                             )
                         )}
                     </div>
@@ -1362,10 +1440,26 @@ const DataGridRenderer = React.memo(({ container, lang }: ComponentRendererProps
 });
 
 // --- RENDERER 4: CONTACT FORM (UPDATED) ---
-const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: ComponentRendererProps) => {
+const ContactFormRenderer = React.memo(({ container, lang, pageTitle, onInternalLink }: ComponentRendererProps) => {
     const { submitContactQuery } = useStore();
     const { settings } = container;
     const fields = settings.fields || [];
+
+    const resolvedAlignment = String(settings.alignment || settings.align || 'center').toLowerCase() === 'left' ? 'left' : 'center';
+    const resolvedBgColor = settings.bgColor || (settings.backgroundColor && settings.backgroundColor !== 'site-color' ? settings.backgroundColor : '#ffffff');
+    const resolvedBgImage = settings.bgImage || settings.backgroundImage || '';
+    const bgTypeNormalized = String(settings.bgType || '').toLowerCase();
+    const resolvedBgType = ((bgTypeNormalized === 'none' || bgTypeNormalized === 'color' || bgTypeNormalized === 'image' || bgTypeNormalized === 'site-color' || bgTypeNormalized === 'site' || bgTypeNormalized === 'sitecolor')
+        ? ((bgTypeNormalized === 'site' || bgTypeNormalized === 'sitecolor') ? 'site-color' : bgTypeNormalized)
+        : (
+            settings.backgroundColor === 'site-color'
+                ? 'site-color'
+                : ((settings.bgImage || settings.backgroundImage) ? 'image' : ((settings.bgColor || settings.backgroundColor) ? 'color' : 'none'))
+        )) as 'none' | 'color' | 'site-color' | 'image';
+
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor);
+    const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor);
+    const descColor = resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor);
 
     // Helper function to generate random CAPTCHA
     const generateCaptcha = () => {
@@ -1386,7 +1480,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
     const [generatedCaptcha, setGeneratedCaptcha] = useState(generateCaptcha());
 
     // Refresh CAPTCHA when component mounts or when manually triggered
-    React.useEffect(() => {
+    useEffect(() => {
         setGeneratedCaptcha(generateCaptcha());
     }, []);
 
@@ -1404,6 +1498,15 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
         if (errors[id]) {
             setErrors(prev => ({ ...prev, [id]: false }));
         }
+    };
+
+    const isFormValid = () => {
+        const requiredFilled = fields.filter((f: any) => f.required).every((f: any) => {
+            const val = formData[f.id];
+            if (f.type === 'checkbox') return !!val;
+            return val && String(val).trim().length > 0;
+        });
+        return requiredFilled && privacyAccepted && captchaValue.trim().length > 0;
     };
 
     const handleSubmit = () => {
@@ -1505,7 +1608,6 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                 setErrors({});
             } else {
                 setStatus('ERROR');
-                // You could also show a more specific error message if desired
                 console.error("Submission failed:", result.error);
             }
         }).catch(err => {
@@ -1518,156 +1620,173 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
     };
 
     return (
-        <div className="w-full py-16 px-6 relative overflow-hidden"
-            style={{
-                backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'transparent'),
-            }}>
-            {settings.bgType === 'image' && settings.bgImage && (
-                <div className="absolute inset-0 z-0">
-                    <VisualImage src={settings.bgImage} alt="Background" priority={true} className="w-full h-full object-cover object-center" />
-                    <div className="absolute inset-0 bg-black/40"></div>
-                </div>
-            )}
+        <div className="w-full relative bg-transparent">
+            {/* Top Background Area */}
+            <div className="w-full pt-20 pb-[33rem] px-6 relative"
+                style={{
+                    backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : 'transparent'),
+                    backgroundImage: resolvedBgType === 'image' && resolvedBgImage ? `url(${resolvedBgImage})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                }}>
+                {resolvedBgType === 'image' && <div className="absolute inset-0 bg-black/50 z-0"></div>}
 
-            <div className={`max-w-xl mx-auto bg-white p-10 shadow-xl border border-gray-200 rounded-sm relative ${settings.bgType === 'image' ? 'backdrop-blur-sm bg-white/95' : ''}`}>
-
-                {/* Success Message Overlay */}
-                {status === 'SUCCESS' ? (
-                    <div className="absolute inset-0 z-20 bg-white flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in-95">
-                        <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50">
-                            <CheckCircle className="w-10 h-10" style={{ color: 'var(--status-success, #16a34a)' }} />
+                {/* Heading & Intro */}
+                <div className={`relative z-10 max-w-2xl mx-auto ${resolvedAlignment === 'center' ? 'text-center' : 'text-left'}`}>
+                    {settings.heading && (
+                        <h2 className={`text-3xl font-bold mb-3 uppercase tracking-wider ${titleColor.className || ''}`}
+                            style={{ ...titleColor.style }}>
+                            {getLocalizedText(settings.heading, lang)}
+                        </h2>
+                    )}
+                    {settings.subheading && (
+                        <p className={`text-sm font-medium opacity-90 ${subtitleColor.className || ''}`}
+                            style={{ ...subtitleColor.style }}>
+                            {getLocalizedText(settings.subheading, lang)}
+                        </p>
+                    )}
+                    {settings.description && (
+                        <div className={`text-xs mt-3 ${descColor.className || ''}`}
+                            style={{ ...descColor.style }}>
+                            {renderRichText(getLocalizedText(settings.description, lang), "")}
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Received!</h3>
-                        <p className="text-gray-500 max-w-xs mx-auto">We've received your inquiry and will get back to you within 24 hours.</p>
-                        <button
-                            onClick={() => setStatus('IDLE')}
-                            className="mt-8 px-6 py-2 border border-gray-200 text-gray-500 font-bold text-xs uppercase hover:bg-gray-50 rounded-sm"
-                        >
-                            Send another message
-                        </button>
-                    </div>
-                ) : null}
-
-                <div className={`text-${settings.alignment === 'center' ? 'center' : 'left'} mb-8`}>
-                    {settings.heading && <h2 className="font-bold text-[var(--primary-color)] mb-2">{getLocalizedText(settings.heading, lang)}</h2>}
-                    {settings.subheading && <p className="text-gray-500 text-sm font-medium">{getLocalizedText(settings.subheading, lang)}</p>}
-                    {settings.description && renderRichText(getLocalizedText(settings.description, lang), "text-gray-400 text-xs mt-2")}
+                    )}
                 </div>
+            </div>
 
-                <div className="space-y-4">
-                    {fields.map((f: any) => (
-                        <div key={f.id}>
-                            {f.type !== 'checkbox' && (
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
-                                    {f.label} {f.required && <span className="text-red-500">*</span>}
-                                </label>
-                            )}
+            {/* Form Card Overlapping Area */}
+            <div className="w-full px-6 -mt-[33rem] pb-16 relative z-20">
+                <div className="max-w-xl mx-auto bg-white p-10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 rounded-sm relative">
+                    {/* Success Message Overlay */}
+                    {status === 'SUCCESS' ? (
+                        <div className="absolute inset-0 z-20 bg-white flex flex-col items-center justify-center text-center p-8 animate-in fade-in zoom-in-95">
+                            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50">
+                                <CheckCircle className="w-10 h-10" style={{ color: 'var(--status-success, #16a34a)' }} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Message Received!</h3>
+                            <p className="text-gray-500 max-w-xs mx-auto">We've received your inquiry and will get back to you within 24 hours.</p>
+                            <button
+                                onClick={() => setStatus('IDLE')}
+                                className="mt-8 px-6 py-2 border border-gray-200 text-gray-500 font-bold text-xs uppercase hover:bg-gray-50 rounded-sm"
+                            >
+                                Send another message
+                            </button>
+                        </div>
+                    ) : null}
 
-                            {f.type === 'textarea' ? (
-                                <textarea
-                                    className={`w-full border p-2 text-sm bg-white rounded-sm resize-none h-24 outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                    placeholder={f.placeholder}
-                                    value={formData[f.id] || ''}
-                                    onChange={(e) => handleInputChange(f.id, e.target.value)}
-                                />
-                            ) : f.type === 'checkbox' ? (
-                                <label className="flex items-start gap-2 cursor-pointer group">
-                                    <div className="relative flex items-center justify-center mt-0.5 w-4 h-4 flex-shrink-0">
-                                        <input
-                                            type="checkbox"
-                                            className={`h-4 w-4 cursor-pointer appearance-none rounded-sm border ${errors[f.id] ? 'border-red-500' : 'border-gray-300'} bg-white transition-all focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none ${formData[f.id] ? 'border-[var(--primary-color)] bg-[var(--primary-color)]' : ''}`}
-                                            checked={!!formData[f.id]}
-                                            onChange={(e) => handleInputChange(f.id, e.target.checked)}
-                                        />
-                                        {formData[f.id] && (
-                                            <Check className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white" />
-                                        )}
-                                    </div>
-                                    <span className="text-sm text-gray-700 leading-tight select-none group-hover:text-black">
+                    <div className="space-y-4">
+                        {fields.map((f: any) => (
+                            <div key={f.id}>
+                                {f.type !== 'checkbox' && (
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
                                         {f.label} {f.required && <span className="text-red-500">*</span>}
-                                    </span>
-                                </label>
-                            ) : f.type === 'select' ? (
-                                /* Assuming future editor might support 'options' or default to basic select */
-                                <select
-                                    className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                    value={formData[f.id] || ''}
-                                    onChange={(e) => handleInputChange(f.id, e.target.value)}
-                                >
-                                    <option value="" disabled>{f.placeholder || 'Select an option'}</option>
-                                    {/* Fallback options if none provided, or simple split if placeholder has commas? 
-                                        For robust default behavior without explicit options array: */}
-                                    <option value="Option 1">Option 1</option>
-                                    <option value="Option 2">Option 2</option>
-                                    <option value="Option 3">Option 3</option>
-                                </select>
-                            ) : (
+                                    </label>
+                                )}
+
+                                {f.type === 'textarea' ? (
+                                    <textarea
+                                        className={`w-full border p-2 text-sm bg-white rounded-sm resize-none h-24 outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                        placeholder={f.placeholder}
+                                        value={formData[f.id] || ''}
+                                        onChange={(e) => handleInputChange(f.id, e.target.value)}
+                                    />
+                                ) : f.type === 'checkbox' ? (
+                                    <label className="flex items-start gap-2 cursor-pointer group">
+                                        <div className="relative flex items-center justify-center mt-0.5 w-4 h-4 flex-shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                className={`h-4 w-4 cursor-pointer appearance-none rounded-sm border ${errors[f.id] ? 'border-red-500' : 'border-gray-300'} bg-white transition-all focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none ${formData[f.id] ? 'border-[var(--primary-color)] bg-[var(--primary-color)]' : ''}`}
+                                                checked={!!formData[f.id]}
+                                                onChange={(e) => handleInputChange(f.id, e.target.checked)}
+                                            />
+                                            {formData[f.id] && (
+                                                <Check className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white" />
+                                            )}
+                                        </div>
+                                        <span className="text-sm text-gray-700 leading-tight select-none group-hover:text-black">
+                                            {f.label} {f.required && <span className="text-red-500">*</span>}
+                                        </span>
+                                    </label>
+                                ) : f.type === 'select' ? (
+                                    <select
+                                        className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                        value={formData[f.id] || ''}
+                                        onChange={(e) => handleInputChange(f.id, e.target.value)}
+                                    >
+                                        <option value="" disabled>{f.placeholder || 'Select an option'}</option>
+                                        <option value="Option 1">Option 1</option>
+                                        <option value="Option 2">Option 2</option>
+                                        <option value="Option 3">Option 3</option>
+                                    </select>
+                                ) : (
+                                    <input
+                                        className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                        type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : 'text'}
+                                        placeholder={f.placeholder}
+                                        value={formData[f.id] || ''}
+                                        onChange={(e) => handleInputChange(f.id, e.target.value)}
+                                    />
+                                )}
+
+                                {errors[f.id] && <p className="text-[10px] text-red-500 mt-1 font-bold">This field is required.</p>}
+                            </div>
+                        ))}
+
+                        <label className="flex items-start gap-2 mt-4 cursor-pointer group">
+                            <div className="relative flex items-center justify-center mt-0.5 w-4 h-4 flex-shrink-0">
                                 <input
-                                    className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors[f.id] ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                                    type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : 'text'}
-                                    placeholder={f.placeholder}
-                                    value={formData[f.id] || ''}
-                                    onChange={(e) => handleInputChange(f.id, e.target.value)}
+                                    type="checkbox"
+                                    className={`h-4 w-4 cursor-pointer rounded-sm border focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none transition-colors ${privacyAccepted ? 'bg-[var(--primary-color)] border-[var(--primary-color)]' : 'border-gray-300'}`}
+                                    checked={privacyAccepted}
+                                    onChange={(e) => {
+                                        setPrivacyAccepted(e.target.checked);
+                                        if (e.target.checked) setErrors(prev => ({ ...prev, privacy: false }));
+                                    }}
                                 />
-                            )}
+                                {privacyAccepted && (
+                                    <Check className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-on-primary)]" />
+                                )}
+                            </div>
+                            <span className="text-xs text-gray-500 leading-tight select-none group-hover:text-gray-700">
+                                I have read the Privacy Policy note. I agree that my contact details and questions will be stored permanently.
+                            </span>
+                        </label>
+                        {errors.privacy && <p className="text-[10px] text-red-500 mt-1 font-bold">You must accept the privacy policy.</p>}
 
-                            {errors[f.id] && <p className="text-[10px] text-red-500 mt-1 font-bold">This field is required.</p>}
-                        </div>
-                    ))}
-
-                    <label className="flex items-start gap-2 mt-4 cursor-pointer group">
-                        <div className="relative flex items-center justify-center mt-0.5 w-4 h-4 flex-shrink-0">
+                        <div className="pt-4">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                                CAPTCHA: <span className="text-blue-600 select-none" style={{ userSelect: 'none' }}>{generatedCaptcha}</span>
+                                <button
+                                    type="button"
+                                    onClick={handleRefreshCaptcha}
+                                    className="inline-flex items-center ml-2 text-blue-600 hover:text-blue-800 transition-colors"
+                                    title="Refresh CAPTCHA"
+                                >
+                                    <RefreshCw className="w-3 h-3" />
+                                </button>
+                            </label>
                             <input
-                                type="checkbox"
-                                className="h-4 w-4 cursor-pointer rounded-sm border border-gray-300 focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none"
-                                checked={privacyAccepted}
+                                className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors.captcha ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                                placeholder="Enter Captcha"
+                                value={captchaValue}
                                 onChange={(e) => {
-                                    setPrivacyAccepted(e.target.checked);
-                                    if (e.target.checked) setErrors(prev => ({ ...prev, privacy: false }));
+                                    setCaptchaValue(e.target.value);
+                                    if (errors.captcha) setErrors(prev => ({ ...prev, captcha: false }));
                                 }}
                             />
-                            {privacyAccepted && (
-                                <Check className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white" />
-                            )}
+                            {errors.captcha && <p className="text-[10px] text-red-500 mt-1 font-bold">Incorrect Captcha.</p>}
                         </div>
-                        <span className="text-xs text-gray-500 leading-tight select-none group-hover:text-gray-700">
-                            I have read the Privacy Policy note. I agree that my contact details and questions will be stored permanently.
-                        </span>
-                    </label>
-                    {errors.privacy && <p className="text-[10px] text-red-500 mt-1 font-bold">You must accept the privacy policy.</p>}
 
-                    <div className="pt-4">
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                            CAPTCHA: <span className="text-blue-600 select-none" style={{ userSelect: 'none' }}>{generatedCaptcha}</span>
-                            <button
-                                type="button"
-                                onClick={handleRefreshCaptcha}
-                                className="inline-flex items-center ml-2 text-blue-600 hover:text-blue-800 transition-colors"
-                                title="Refresh CAPTCHA"
-                            >
-                                <RefreshCw className="w-3 h-3" />
-                            </button>
-                        </label>
-                        <input
-                            className={`w-full border p-2 text-sm bg-white rounded-sm outline-none focus:ring-1 focus:ring-[var(--primary-color)] ${errors.captcha ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                            placeholder="Enter Captcha"
-                            value={captchaValue}
-                            onChange={(e) => {
-                                setCaptchaValue(e.target.value);
-                                if (errors.captcha) setErrors(prev => ({ ...prev, captcha: false }));
-                            }}
-                        />
-                        {errors.captcha && <p className="text-[10px] text-red-500 mt-1 font-bold">Incorrect Captcha.</p>}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!isFormValid() || status === 'LOADING'}
+                            className={`w-full py-3 font-bold text-sm shadow-md uppercase tracking-wider rounded-sm mt-4 transition-all ${isFormValid() && status !== 'LOADING'
+                                ? 'bg-[var(--primary-color)] text-[var(--text-on-primary)] hover:opacity-90 active:scale-[0.98]'
+                                : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'}`}
+                        >
+                            {status === 'LOADING' ? 'Sending...' : getLocalizedText(settings.buttonText || 'Send Message', lang)}
+                        </button>
                     </div>
-
-                    <button
-                        onClick={handleSubmit}
-                        disabled={status === 'LOADING'}
-                        className={`w-full bg-[var(--primary-color)] text-white py-3 font-bold text-sm shadow-md hover:opacity-90 uppercase tracking-wider rounded-sm mt-4 transition-opacity flex items-center justify-center gap-2 ${status === 'LOADING' ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    >
-                        {status === 'LOADING' && <RefreshCw className="w-4 h-4 animate-spin" />}
-                        {status === 'LOADING' ? 'Sending...' : getLocalizedText(settings.buttonText || 'Send Message', lang)}
-                    </button>
                 </div>
             </div>
         </div>
@@ -1675,7 +1794,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
 });
 
 // --- RENDERER 5: TABLE VIEW ---
-const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+const TableRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings, content } = container;
     const columns = settings.columns || [];
     const rows = content.rows || [];
@@ -1733,7 +1852,8 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
     return (
         <div className="py-16 px-6 max-w-7xl mx-auto">
             <div className="mb-8">
-                <h2 className="font-bold text-[var(--primary-color)] mb-2">
+                <h2 className={`font-bold mb-2 ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`}
+                    style={resolveColor(settings.titleColor, settings.titleCustomColor).style}>
                     {getLocalizedText(content.title, lang)}
                 </h2>
                 {settings.enableGlobalSearch && (
@@ -1819,12 +1939,13 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
 });
 
 // --- RENDERER 6: MAP ---
-const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
+const MapRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings, content } = container;
 
     return (
         <div className="py-16 px-6 max-w-7xl mx-auto">
-            <h2 className="font-bold text-[var(--primary-color)] mb-8">
+            <h2 className={`font-bold mb-8 ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`}
+                style={resolveColor(settings.titleColor, settings.titleCustomColor).style}>
                 {getLocalizedText(content.title, lang)}
             </h2>
 
@@ -1859,9 +1980,8 @@ const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => 
 });
 
 // --- RENDERER 7: CONTAINER SECTION ---
-const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
-    const { siteConfig } = useStore();
-    const themeConfig = (siteConfig as any).themeConfig || {};
+const ContainerSectionRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
+    const { themeConfig } = useStore();
     const { settings, content } = container;
     const title = getLocalizedText(content?.title, lang);
     const body = settings?.body || '';
@@ -1869,46 +1989,50 @@ const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRende
     // Resolve background color
     const bgType = String(settings?.bgType || '').toLowerCase();
     const resolvedBg = (() => {
-        if (bgType === 'color') return settings?.bgColor || settings?.backgroundColor || '#ffffff';
-        if (bgType === 'site-color' || bgType === 'site' || bgType === 'sitecolor') return 'var(--bg-body)';
+        if (bgType === 'color') return settings?.bgColor || settings?.backgroundColor || 'transparent';
+        if (bgType === 'site-color' || bgType === 'site' || bgType === 'sitecolor') return 'var(--primary-color)';
         return 'transparent'; // 'none' or default
     })();
 
     // Resolve title color
-    const titleColorType = String(settings?.titleColorType || '').toLowerCase();
-    const resolvedTitleColor = (() => {
-        if (titleColorType === 'site-color' || titleColorType === 'site' || titleColorType === 'sitecolor')
-            return themeConfig['--primary-color'] || 'var(--primary-color)';
-        if (titleColorType === 'color') return settings?.titleColor || (themeConfig['--primary-color'] || 'var(--primary-color)');
-        // 'none' or default: fall back to primary color
-        return themeConfig['--primary-color'] || 'var(--primary-color)';
-    })();
+    const resolvedTitle = resolveColor(settings?.titleColorType || settings?.titleColor, settings?.titleColor);
 
     // Resolve title border color
-    const titleBorderColor = titleColorType === 'none' ? 'transparent' : resolvedTitleColor;
+    // If background is transparent, we might want a border. If not, maybe not.
+    const titleBorderColorLine = (bgType === 'none' || !bgType) ? (resolvedTitle.style?.color || 'var(--primary-color)') : 'transparent';
 
     // Resolve alignment
     const alignment = String(settings?.alignment || settings?.align || 'left').toLowerCase();
 
     return (
-        <div className="w-full py-10 px-2" style={{ backgroundColor: bgType === 'image' ? 'transparent' : 'var(--bg-body, #fff)' }}>
-            <div className="max-w-7xl mx-auto px-4">
-                {title && (
-                    <h1
-                        className="font-bold uppercase tracking-wider mb-6 pb-3"
-                        style={{
-                            color: resolvedTitleColor,
-                            backgroundColor: resolvedBg,
-                            borderBottom: `2px solid ${titleBorderColor}`,
-                            fontSize: themeConfig['--font-size-h2'] || '1.5rem',
-                            fontFamily: themeConfig['--font-family-base'] || 'inherit',
-                            textAlign: alignment === 'center' ? 'center' : 'left',
-                            padding: resolvedBg !== 'transparent' ? '1rem' : '0 0 0.75rem 0'
-                        }}
-                    >
-                        {title}
-                    </h1>
-                )}
+        <div className="w-full" style={{ backgroundColor: 'transparent' }}>
+            {title && (
+                <div
+                    className="w-full px-2"
+                    style={{
+                        backgroundColor: resolvedBg,
+                        borderBottom: resolvedBg !== 'transparent' ? `2px solid ${titleBorderColorLine}` : 'none'
+                    }}
+                >
+                    <div className="max-w-7xl mx-auto px-4 py-8">
+                        <h1
+                            className={`font-bold uppercase tracking-wider mb-0 ${resolvedTitle.className || ''}`}
+                            style={{
+                                ...resolvedTitle.style,
+                                borderBottom: resolvedBg === 'transparent' ? `2px solid ${titleBorderColorLine}` : 'none',
+                                fontSize: themeConfig['--font-size-h2'] || '1.5rem',
+                                fontFamily: themeConfig['--font-family-base'] || 'inherit',
+                                textAlign: alignment === 'center' ? 'center' : 'left',
+                                paddingBottom: resolvedBg === 'transparent' ? '0.75rem' : '0'
+                            }}
+                        >
+                            {title}
+                        </h1>
+                    </div>
+                </div>
+            )}
+
+            <div className="max-w-7xl mx-auto px-6 py-10">
                 {body && (
                     <div
                         className="leading-relaxed"
@@ -1934,7 +2058,7 @@ const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRende
 });
 
 // --- MAIN WRAPPER ---
-const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: { container: any, viewMode: ViewMode, lang: LanguageCode, pageTitle: string }) => {
+const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle, onInternalLink }: { container: any, viewMode: ViewMode, lang: LanguageCode, pageTitle: string, onInternalLink: (e: React.MouseEvent, url: string) => void }) => {
     const { openModal, setEditingContainerId } = useStore();
 
     const handleEdit = () => {
@@ -1947,7 +2071,11 @@ const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: {
     };
 
     return (
-        <div id={`container-${container.id}`} className={`relative group ${viewMode === ViewMode.EDIT ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : ''}`}>
+        <div
+            id={`container-${container.id}`}
+            data-container-title={container.title}
+            className={`relative group ${viewMode === ViewMode.EDIT ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : ''}`}
+        >
             {viewMode === ViewMode.EDIT && (
                 <div className="absolute top-4 right-4 z-40 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -1966,13 +2094,13 @@ const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle }: {
             )}
 
             {/* Strict Rendering based on Type */}
-            {container.type === ContainerType.HERO && <HeaderRenderer container={container} lang={lang} />}
-            {container.type === ContainerType.SLIDER && <SliderRenderer container={container} lang={lang} />}
-            {container.type === ContainerType.CARD_GRID && <DataGridRenderer container={container} lang={lang} />}
-            {container.type === ContainerType.CONTACT_FORM && <ContactFormRenderer container={container} lang={lang} pageTitle={pageTitle} />}
-            {container.type === ContainerType.TABLE && <TableRenderer container={container} lang={lang} />}
-            {container.type === ContainerType.MAP && <MapRenderer container={container} lang={lang} />}
-            {container.type === ContainerType.CONTAINER_SECTION && <ContainerSectionRenderer container={container} lang={lang} />}
+            {container.type === ContainerType.HERO && <HeaderRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.SLIDER && <SliderRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.CARD_GRID && <DataGridRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.CONTACT_FORM && <ContactFormRenderer container={container} lang={lang} pageTitle={pageTitle} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.TABLE && <TableRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.MAP && <MapRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
+            {container.type === ContainerType.CONTAINER_SECTION && <ContainerSectionRenderer container={container} lang={lang} onInternalLink={onInternalLink} />}
 
             {/* Fallback for other types if any (e.g. IMAGE_TEXT) */}
             {container.type === ContainerType.IMAGE_TEXT && (
@@ -2115,15 +2243,23 @@ const LanguageSelector = () => {
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1 text-xs font-bold px-2 py-1 border border-transparent hover:bg-gray-50 transition-all text-gray-700"
+                className={`
+                    flex items-center gap-2 px-3 py-1.5 rounded-sm transition-all duration-300
+                    text-[10px] font-bold uppercase tracking-[0.1em]
+                    ${isOpen ? 'bg-[var(--primary-color)] text-[var(--text-on-primary)] shadow-lg' : 'bg-white/10 hover:bg-white/20 text-gray-700 hover:text-[var(--primary-color)] border border-gray-100'}
+                `}
             >
-                {currentLanguage.toUpperCase()} <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                {currentLanguage}
+                <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)}></div>
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 shadow-xl z-[110] py-1 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute right-0 top-full mt-2 w-44 overflow-hidden bg-white/95 backdrop-blur-md border border-gray-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] z-[110] p-1.5 animate-in fade-in slide-in-from-top-2 duration-200 rounded-sm">
+                        <div className="text-[9px] uppercase tracking-widest text-gray-400 font-bold px-3 py-2 border-b border-gray-100 mb-1">
+                            Select Language
+                        </div>
                         {languages.map((lang: string) => (
                             <button
                                 key={lang}
@@ -2131,11 +2267,16 @@ const LanguageSelector = () => {
                                     setLanguage(lang as LanguageCode);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between ${currentLanguage === lang ? 'font-bold bg-blue-50 text-[var(--primary-color)]' : 'text-gray-700'}`}
+                                className={`
+                                    w-full text-left px-3 py-2.5 text-xs font-semibold rounded-sm transition-all flex items-center justify-between
+                                    ${currentLanguage === lang
+                                        ? 'bg-[var(--primary-color)]/5 text-[var(--primary-color)]'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                                `}
                             >
-                                {getLangLabel(lang)}
+                                <span>{getLangLabel(lang)}</span>
                                 {currentLanguage === lang && (
-                                    <div className="w-1.5 h-1.5 bg-[var(--primary-color)]"></div>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--primary-color)] animate-pulse"></div>
                                 )}
                             </button>
                         ))}
@@ -2220,7 +2361,7 @@ export const PreviewArea: React.FC = () => {
             }, 50);
         };
 
-        // Handle hash-based routes: e.g. #/privacy-policy (SharePoint style)
+        // Handle hash-based routes: e.g. #/privacy-policy
         if (url.startsWith('#')) {
             const slug = url.slice(1) || '/';
             const targetPage = pages.find(p => p.slug === slug || (slug === '/' && p.slug === '/'));
@@ -2233,18 +2374,26 @@ export const PreviewArea: React.FC = () => {
         }
 
         // Handle absolute / relative URL internal links
-        const normalizedUrl = url.startsWith('/') ? `${siteUrl}${url === '/' ? '' : url}` : url;
+        const [pathWithPossibleHash, hash] = url.split('#');
+        const normalizedUrl = pathWithPossibleHash.startsWith('/') ? `${siteUrl}${pathWithPossibleHash === '/' ? '' : pathWithPossibleHash}` : pathWithPossibleHash;
+
         if (normalizedUrl.startsWith(siteUrl)) {
             const path = normalizedUrl.replace(siteUrl, '') || '/';
-            const targetPage = pages.find(p => {
-                const normalizedSlug = (p.slug || '/').replace(/\/$/, '') || '/';
-                const normalizedPath = (path || '/').replace(/\/$/, '') || '/';
-                return normalizedSlug === normalizedPath;
-            });
+            const targetPage = pages.find(p => p.slug === path || (path === '/' && p.slug === '/'));
             if (targetPage) {
                 e.preventDefault();
                 setCurrentPage(targetPage.id);
-                scrollToTop();
+
+                if (hash) {
+                    setTimeout(() => {
+                        const targetEl = document.querySelector(`[data-container-title="${decodeURIComponent(hash)}"]`) || document.getElementById(hash);
+                        if (targetEl) {
+                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 300);
+                } else {
+                    scrollToTop();
+                }
             }
         }
     }, [pages, setCurrentPage, siteUrl]);
@@ -2383,7 +2532,8 @@ export const PreviewArea: React.FC = () => {
                                     container={container}
                                     viewMode={viewMode}
                                     lang={currentLanguage}
-                                    pageTitle={getLocalizedText(activePage.title, currentLanguage)}
+                                    pageTitle={getLocalizedText(activePage?.title, currentLanguage) || ''}
+                                    onInternalLink={handleInternalLink}
                                 />
                             ))
                         ) : (
@@ -2445,7 +2595,7 @@ export const PreviewArea: React.FC = () => {
                                                         <div key={item.id}>
                                                             <h4 className={idx === 0 ? "font-bold mb-1" : "opacity-80 leading-relaxed"} style={{
                                                                 fontSize: idx === 0 ? footerConfig.fontSettings.headingSize : footerConfig.fontSettings.subHeadingSize,
-                                                                color: '#000000ff'
+                                                                color: footerTextColor
                                                             }}>
                                                                 {item.value || (idx === 0 ? siteConfig.name : '')}
                                                             </h4>
@@ -2453,9 +2603,9 @@ export const PreviewArea: React.FC = () => {
                                                     ))
                                                 ) : (
                                                     <div className="text-left">
-                                                        <h4 className="font-bold mb-2 text-[#254784]" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
+                                                        <h4 className="font-bold mb-2 text-[var(--primary-color)]" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
                                                         {footerConfig.contactInfo.address && (
-                                                            <p className="opacity-80 leading-relaxed text-[#254784]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: '#000000ff' }}>
+                                                            <p className="opacity-80 leading-relaxed text-[var(--primary-color)]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: footerTextColor }}>
                                                                 {footerConfig.contactInfo.address}
                                                             </p>
                                                         )}
@@ -2466,7 +2616,7 @@ export const PreviewArea: React.FC = () => {
                                                 <div className="mt-2 text-left">
                                                     <button
                                                         onClick={() => openModal(ModalType.FOOTER)}
-                                                        className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#254784] hover:bg-orange-50 transition-colors shadow-sm"
+                                                        className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
                                                     >
                                                         <Plus className="w-6 h-6" />
                                                     </button>
@@ -2477,7 +2627,7 @@ export const PreviewArea: React.FC = () => {
                                         {/* Column 2: Social Links (Flexible) - WITH DESIGN LINES */}
                                         <div className="flex flex-col items-center space-y-6">
                                             <div className="flex items-center w-full gap-4">
-                                                <div className="h-px bg-[#254784]/20 flex-1"></div>
+                                                <div className="h-px bg-[var(--primary-color)]/20 flex-1"></div>
                                                 <div className="flex flex-wrap justify-center gap-3">
                                                     {(footerConfig.socialItems && footerConfig.socialItems.length > 0) ? (
                                                         footerConfig.socialItems.map((item: any) => (
@@ -2489,23 +2639,23 @@ export const PreviewArea: React.FC = () => {
                                                         <div className="flex gap-4">
                                                             {footerConfig.socialLinks.facebook && (
                                                                 <a href={footerConfig.socialLinks.facebook} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[#254784] flex items-center justify-center"><Facebook className="w-5 h-5 text-white" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Facebook className="w-5 h-5 text-[var(--text-on-primary)]" /></div>
                                                                 </a>
                                                             )}
                                                             {footerConfig.socialLinks.linkedin && (
                                                                 <a href={footerConfig.socialLinks.linkedin} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[#254784] flex items-center justify-center"><Linkedin className="w-5 h-5 text-white" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Linkedin className="w-5 h-5 text-[var(--text-on-primary)]" /></div>
                                                                 </a>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="h-px bg-[#254784]/20 flex-1"></div>
+                                                <div className="h-px bg-[var(--primary-color)]/20 flex-1"></div>
                                             </div>
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[#ff9800] bg-white flex items-center justify-center text-[#254784] hover:bg-orange-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
@@ -2517,23 +2667,23 @@ export const PreviewArea: React.FC = () => {
                                             <div className="space-y-4">
                                                 {(footerConfig.contactItems && footerConfig.contactItems.length > 0) ? (
                                                     footerConfig.contactItems.map((item: any) => (
-                                                        <div key={item.id} className="flex items-center justify-end gap-3" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                        <div key={item.id} className="flex items-center justify-end gap-3" style={{ color: footerTextColor, fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                             <span>{item.value}</span>
-                                                            {getContactIcon(item.type)}
+                                                            {getContactIcon(item.type, footerTextColor)}
                                                         </div>
                                                     ))
                                                 ) : (
                                                     <div className="space-y-3">
                                                         {footerConfig.contactInfo.email && (
-                                                            <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: footerTextColor, fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                                 <span>{footerConfig.contactInfo.email}</span>
-                                                                <Mail className="w-5 h-5" />
+                                                                {getContactIcon('Email', footerTextColor)}
                                                             </a>
                                                         )}
                                                         {footerConfig.contactInfo.phone && (
-                                                            <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: '#254784', fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: footerTextColor, fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                                 <span>{footerConfig.contactInfo.phone}</span>
-                                                                <Phone className="w-5 h-5" />
+                                                                {getContactIcon('Phone', footerTextColor)}
                                                             </a>
                                                         )}
                                                     </div>
@@ -2542,7 +2692,7 @@ export const PreviewArea: React.FC = () => {
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[#254784] bg-white flex items-center justify-center text-[#254784] hover:bg-blue-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
@@ -2555,7 +2705,7 @@ export const PreviewArea: React.FC = () => {
 
                                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-4 h-min">
                                         <div className="flex flex-col items-start gap-2">
-                                            <div className="flex items-center gap-1 text-sm text-[#254784]">
+                                            <div className="flex items-center gap-1 text-sm text-[var(--primary-color)]">
                                                 {(footerConfig?.bottomLinks && footerConfig.bottomLinks.length > 0) ? (
                                                     footerConfig.bottomLinks.map((link: any, idx: number) => {
                                                         const cleanUrl = transformSharePointUrl(link.url || '#');
@@ -2563,7 +2713,7 @@ export const PreviewArea: React.FC = () => {
                                                             <React.Fragment key={link.id}>
                                                                 <a
                                                                     href={cleanUrl}
-                                                                    className="hover:text-[#254784] transition-colors whitespace-nowrap px-1"
+                                                                    className="hover:opacity-80 transition-colors whitespace-nowrap px-1"
                                                                     onClick={(e) => handleInternalLink(e, cleanUrl)}
                                                                 >
                                                                     {link.label}
@@ -2574,23 +2724,23 @@ export const PreviewArea: React.FC = () => {
                                                     })
                                                 ) : (
                                                     <div className="flex items-center gap-2 opacity-60">
-                                                        <a href="#" className="hover:text-[#254784] transition-colors">{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
+                                                        <a href="#" className="hover:text-[var(--primary-color)] transition-colors">{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
                                                         <span>/</span>
-                                                        <a href="#" className="hover:text-[#254784] transition-colors">{getTranslation('LBL_TERMS_SERVICE', currentLanguage) || 'Terms of Service'}</a>
+                                                        <a href="#" className="hover:text-[var(--primary-color)] transition-colors">{getTranslation('LBL_TERMS_SERVICE', currentLanguage) || 'Terms of Service'}</a>
                                                     </div>
                                                 )}
                                             </div>
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[#254784] bg-white flex items-center justify-center text-[#254784] hover:bg-blue-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
                                             )}
                                         </div>
                                         <div className="flex flex-col items-center md:items-end gap-2 h-min">
-                                            <div className="text-[#254784] text-sm font-medium opacity-80 h-min">
+                                            <div className="text-sm font-medium opacity-80 h-min" style={{ color: footerTextColor }}>
                                                 {getLocalizedText(footerConfig.copyright, currentLanguage)}
                                             </div>
                                         </div>
