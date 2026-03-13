@@ -1440,7 +1440,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
 });
 
 // --- RENDERER 4: CONTACT FORM (UPDATED) ---
-const ContactFormRenderer = React.memo(({ container, lang, pageTitle, onInternalLink }: ComponentRendererProps) => {
+const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: ComponentRendererProps) => {
     const { submitContactQuery } = useStore();
     const { settings } = container;
     const fields = settings.fields || [];
@@ -1794,7 +1794,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle, onInternal
 });
 
 // --- RENDERER 5: TABLE VIEW ---
-const TableRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
+const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
     const columns = settings.columns || [];
     const rows = content.rows || [];
@@ -1939,7 +1939,7 @@ const TableRenderer = React.memo(({ container, lang, onInternalLink }: Component
 });
 
 // --- RENDERER 6: MAP ---
-const MapRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
+const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
 
     return (
@@ -1980,7 +1980,7 @@ const MapRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRe
 });
 
 // --- RENDERER 7: CONTAINER SECTION ---
-const ContainerSectionRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
+const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { themeConfig } = useStore();
     const { settings, content } = container;
     const title = getLocalizedText(content?.title, lang);
@@ -2447,10 +2447,34 @@ export const PreviewArea: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-gray-50 h-full w-full absolute inset-0 z-[100]">
-                <div className="flex flex-col items-center gap-4">
-                    <RefreshCw className="w-12 h-12 text-[var(--primary-color)] animate-spin" />
-                    <p className="text-sm font-bold text-gray-500 uppercase tracking-widest animate-pulse">Loading Platform Data...</p>
+            <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative w-full h-full">
+                <div className="flex-1 overflow-y-auto bg-white relative">
+                    {/* Header Skeleton */}
+                    <header className="sticky top-0 z-30 shadow-sm bg-white" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <div className="mx-auto px-6 flex h-[100px] md:h-28 items-center" style={{ maxWidth: siteConfig?.headerWidth === 'standard' ? '80rem' : '100%' }}>
+                            <div className="flex-shrink-0 flex items-center h-full">
+                                <img src="https://hochhuth-consulting.de//images/logo.png" alt="Hochhuth Consulting" className="h-[60px] md:h-[80px] object-contain" />
+                            </div>
+                        </div>
+                    </header>
+                    {/* Content Skeleton (Blue Theme) */}
+                    <div className="min-h-[calc(100vh - 110px)] flex flex-col bg-white">
+                        {/* Hero Skeleton (Blue Background) */}
+                        <div className="w-full h-[500px] md:h-[600px] flex flex-col items-center justify-center p-8 bg-[#1f3f73] animate-pulse">
+                            <div className="w-4/5 max-w-4xl h-16 md:h-24 bg-blue-800 rounded mb-8"></div>
+                            <div className="w-3/4 max-w-2xl h-8 md:h-12 bg-blue-800 rounded"></div>
+                        </div>
+                        {/* Section Skeleton */}
+                        <div className="max-w-7xl mx-auto w-full px-6 py-16 flex flex-col items-center">
+                            <div className="w-64 h-10 bg-blue-100 rounded mb-4 animate-pulse"></div>
+                            <div className="w-96 h-6 bg-blue-50 rounded mb-12 animate-pulse"></div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+                                <div className="h-64 bg-blue-50 rounded animate-pulse"></div>
+                                <div className="h-64 bg-blue-50 rounded animate-pulse" style={{ animationDelay: '150ms' }}></div>
+                                <div className="h-64 bg-blue-50 rounded animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );
