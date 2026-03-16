@@ -149,7 +149,7 @@ const renderRichText = (html: string, className?: string, style?: React.CSSPrope
 
 const getDocIcon = (type: string) => {
     switch (type) {
-        case 'Word': return <FileText className="w-16 h-16 text-blue-600 opacity-80" />;
+        case 'Word': return <FileText className="w-16 h-16 opacity-80" style={{ color: 'var(--primary-color)' }} />;
         case 'Excel': return <FileSpreadsheet className="w-16 h-16 text-green-600 opacity-80" />;
         case 'PDF': return <File className="w-16 h-16 text-red-500 opacity-80" />;
         case 'PPT':
@@ -183,14 +183,61 @@ const getContactIcon = (type: string, color: string = 'var(--primary-color)') =>
     }
 };
 
-const resolveColor = (colorSetting?: string, customHex?: string, defaultColor: string = 'text-[var(--primary-color)]'): { className?: string; style?: React.CSSProperties } => {
-    if (!colorSetting || colorSetting === 'site' || colorSetting === 'site-color')
-        return { className: 'text-[var(--primary-color)]' };
-    if (colorSetting === 'color' && customHex) return { style: { color: customHex } };
-    if (colorSetting === 'white') return { className: 'text-white' };
-    if (colorSetting === 'black') return { className: 'text-black' };
-    // Fallback to the provided defaultColor (usually primary, but can be gray/black for desc)
-    return { className: defaultColor };
+// Helper to resolve color setting into className or style object
+const resolveColor = (colorSetting?: string, customHex?: string, defaultClass: string = 'text-inherit'): { className?: string; style?: React.CSSProperties } => {
+    if (!colorSetting) return { className: defaultClass };
+
+    let colorValue: string | undefined;
+    let className: string | undefined;
+
+    // Support both 'site-color' and shorthand 'site'
+    if (colorSetting === 'site' || colorSetting === 'site-color' || colorSetting === 'sitecolor') {
+        colorValue = 'var(--primary-color)';
+        className = 'text-[var(--primary-color)]';
+    }
+    // Handle explicit color/custom setting with hex
+    else if (colorSetting === 'color' || colorSetting === 'custom') {
+        if (customHex) colorValue = customHex;
+        else return { className: defaultClass };
+    }
+    // Handle hex string passed directly in colorSetting (fallback)
+    else if (colorSetting.startsWith('#')) {
+        colorValue = colorSetting;
+    }
+    else if (colorSetting === 'white') {
+        colorValue = '#ffffff';
+        className = 'text-white';
+    }
+    else if (colorSetting === 'black') {
+        colorValue = '#000000';
+        className = 'text-black';
+    }
+
+    if (colorValue) {
+        return {
+            className,
+            style: {
+                color: colorValue,
+                // Override CSS variables used in index.css with !important to ensure priority
+                '--heading-h1-color': colorValue,
+                '--heading-h2-color': colorValue,
+                '--heading-h3-color': colorValue,
+                '--heading-h4-color': colorValue,
+                '--heading-h5-color': colorValue,
+                '--heading-h6-color': colorValue,
+                '--text-primary': colorValue,
+            } as any
+        };
+    }
+
+    return { className: defaultClass };
+};
+
+// Helper for alignment classes (Tailwind uses start/end instead of left/right)
+const getTailwindAlign = (align: string) => {
+    if (align === 'left') return 'start';
+    if (align === 'right') return 'end';
+    return align;
 };
 
 interface ComponentRendererProps {
@@ -267,7 +314,7 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                                         onInternalLink(e, finalUrl);
                                     }
                                 }}
-                                className="px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
+                                className="px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
                             >
                                 {settings.btnName}
                             </button>
@@ -284,14 +331,14 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                                         onInternalLink(e, cleanBtnUrl);
                                     }
                                 }}
-                                className="inline-block px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
+                                className="inline-block px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
                             >
                                 {settings.btnName}
                             </a>
                         );
                     })() : (
                         /* ---- No Link configured (placeholder) ---- */
-                        <button className="px-8 py-3 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
+                        <button className="px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
                             {settings.btnName}
                         </button>
                     )}
@@ -300,8 +347,13 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
         </div>
     );
 
+    // Unified Background Resolution
+    const bgType = (settings.bgType || 'none').toLowerCase();
+    const resolvedBgType = bgType === 'site' || bgType === 'site-color' || bgType === 'sitecolor' ? 'site-color' : bgType;
+    const resolvedBgColor = settings.bgColor || settings.backgroundColor || '#ffffff';
+
     // New "Layout Design Section" support (Split Screen)
-    if (settings.bgType === 'layout') {
+    if (resolvedBgType === 'layout') {
         const isImgLeft = settings.layoutVariant === 'img_left';
 
         return (
@@ -319,7 +371,10 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                     )}
                 </div>
                 {/* Text Side */}
-                <div className={`w-full md:w-1/2 flex items-center justify-center p-12 ${settings.bgColor ? '' : 'bg-[var(--bg-surface)]'}`} style={{ backgroundColor: settings.bgColor || 'var(--bg-surface)' }}>
+                <div
+                    className={`w-full md:w-1/2 flex items-center justify-center p-12 ${resolvedBgColor ? '' : 'bg-[var(--bg-surface)]'}`}
+                    style={{ backgroundColor: resolvedBgColor === 'site-color' ? 'var(--primary-color)' : (resolvedBgColor === 'site' ? 'var(--primary-color)' : resolvedBgColor) }}
+                >
                     <div className={textAlign}>
                         <ContentBlock />
                     </div>
@@ -330,13 +385,13 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
 
     // Standard Styles
     const bgStyle: React.CSSProperties = {
-        backgroundColor: settings.bgType === 'color' ? settings.bgColor : (settings.bgType === 'none' ? 'transparent' : 'var(--bg-body)'),
+        backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : (resolvedBgType === 'none' ? 'transparent' : 'var(--bg-body)')),
         minHeight: settings.minHeight === 'full' ? '100vh' : '600px',
     };
 
     return (
         <div className={`w-full relative flex flex-col justify-center py-20 px-6 ${textAlign}`} style={bgStyle}>
-            {settings.bgType === 'image' && settings.bgImage && (
+            {resolvedBgType === 'image' && settings.bgImage && (
                 <div className="absolute inset-0 z-0">
                     <VisualImage src={settings.bgImage} alt="Background" priority={true} className="w-full h-full object-cover object-center" />
                     <div className="absolute inset-0 bg-black/40"></div>
@@ -475,25 +530,43 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
                             )}
                             {showDesc && (
                                 <>
-                                    {showSubtitleSeparately && renderRichText(slideSubtitle, `font-medium ${slideSubtitleColor.className || ''}`, { ...subtitleStyle, ...slideSubtitleColor.style })}
-                                    {slideDesc && renderRichText(slideDesc, `leading-relaxed ${slideDescColor.className || ''}`, { ...descStyle, ...slideDescColor.style })}
+                                    {showSubtitleSeparately && renderRichText(
+                                        slideSubtitle,
+                                        `font-medium text-left ${slideSubtitleColor.className || ''}`,
+                                        { ...subtitleStyle, ...slideSubtitleColor.style }
+                                    )}
+                                    {slideDesc && renderRichText(
+                                        slideDesc,
+                                        `leading-relaxed text-left ${slideDescColor.className || ''}`,
+                                        { ...descStyle, ...slideDescColor.style }
+                                    )}
                                 </>
                             )}
                             {activeSlide.cta && (
-                                <button className="px-6 py-2 bg-[var(--primary-color)] text-white font-bold rounded-sm shadow-sm">{getLocalizedText(activeSlide.cta, lang)}</button>
+                                <button
+                                    onClick={(e) => {
+                                        if (activeSlide.url) {
+                                            const cleanUrl = transformSharePointUrl(activeSlide.url);
+                                            _onInternalLink(e, cleanUrl);
+                                        }
+                                    }}
+                                    className="px-6 py-2 bg-[var(--btn-primary-bg)] text-white font-bold rounded-sm shadow-sm transition-opacity hover:opacity-90"
+                                >
+                                    {getLocalizedText(activeSlide.cta, lang)}
+                                </button>
                             )}
                             <div className="flex gap-2 pt-4">
                                 <button
                                     onClick={prev}
                                     disabled={!canPrev}
-                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
+                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
                                 <button
                                     onClick={next}
                                     disabled={!canNext}
-                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--primary-color)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
+                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
                                 >
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -539,12 +612,16 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
             {(sliderTitle || sliderSubheading || sliderDescription) && (
                 <div className={`px-8 pt-10 pb-4 max-w-7xl mx-auto ${sectionHeaderAlignClass} w-full`}>
                     {sliderTitle && (
-                        <h2 className="font-bold text-[var(--primary-color)] mb-1" style={titleStyle}>{sliderTitle}</h2>
+                        <h2 className={`${slideTitleColor.className || 'text-[var(--primary-color)]'} font-bold mb-1`} style={{ ...titleStyle, ...slideTitleColor.style }}>{sliderTitle}</h2>
                     )}
                     {sliderSubheading && (
-                        <p className="text-gray-500" style={subtitleStyle}>{sliderSubheading}</p>
+                        <p className={`${slideSubtitleColor.className || 'text-[var(--text-secondary)]'}`} style={{ ...subtitleStyle, ...slideSubtitleColor.style }}>{sliderSubheading}</p>
                     )}
-                    {sliderDescription && renderRichText(sliderDescription, `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''}`)}
+                    {sliderDescription && renderRichText(
+                        sliderDescription,
+                        `text-sm leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''} ${slideDescColor.className || 'text-[var(--text-secondary)]'}`,
+                        { ...descStyle, ...slideDescColor.style }
+                    )}
                 </div>
             )}
 
@@ -702,9 +779,9 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
     }, []);
 
     const items = useMemo(() => {
-        let all: any[] = [];
+        let allItems: any[] = [];
         if (settings.source === 'News') {
-            all = news.map(n => ({
+            allItems = news.map(n => ({
                 id: n.id,
                 title: getItemTranslation(n, lang, 'title'),
                 desc: getItemTranslation(n, lang, 'description'),
@@ -716,7 +793,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                 originalItem: n
             }));
         } else if (settings.source === 'Event') {
-            all = events.map(e => ({
+            allItems = events.map(e => ({
                 id: e.id,
                 title: getItemTranslation(e, lang, 'title'),
                 desc: getItemTranslation(e, lang, 'description'),
@@ -729,7 +806,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                 originalItem: e
             }));
         } else if (settings.source === 'Document') {
-            all = documents.map(d => ({
+            allItems = documents.map(d => ({
                 id: d.id,
                 title: getItemTranslation(d, lang, 'title'),
                 desc: getItemTranslation(d, lang, 'description'),
@@ -738,14 +815,12 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                 status: d.status,
                 type: d.type,
                 encodedAbsUrl: (d as any).encodedAbsUrl || (d as any).EncodedAbsUrl || '',
-                url: d.url,
-                openInNewTab: (d as any).openInNewTab,
                 readMoreText: getItemTranslation(d, lang, 'readMoreText'),
                 translations: d.translations,
                 originalItem: d
             }));
         } else if (settings.source === 'Smart Pages') {
-            all = pages.filter(p => p.status === 'Published').map(p => ({
+            allItems = pages.filter(p => p.status === 'Published').map(p => ({
                 id: p.id,
                 title: getLocalizedText(p.title, lang),
                 desc: p.description || '',
@@ -755,7 +830,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                 originalItem: p
             }));
         } else if (settings.source === 'Contacts' || settings.source === 'Contact') {
-            all = contacts.map(c => ({
+            allItems = contacts.map(c => ({
                 id: c.id,
                 title: getItemTranslation(c, lang, 'fullName'),
                 jobTitle: getItemTranslation(c, lang, 'jobTitle') || '',
@@ -769,21 +844,24 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                 originalItem: c
             }));
         } else if (settings.source === 'Container Items') {
-            all = containerItems.map(item => ({
+            allItems = containerItems.map(item => ({
                 id: item.id,
                 title: getItemTranslation(item, lang, 'title'),
                 desc: getItemTranslation(item, lang, 'description'),
                 date: item.createdDate || new Date().toISOString(),
                 img: item.imageUrl || '',
                 status: item.status,
+                readMoreText: '',
+                translations: item.translations,
                 originalItem: item
             }));
+        } else {
+            allItems = [];
         }
-
         const taggedIds = settings.taggedItems || [];
         return taggedIds.length > 0
-            ? taggedIds.map((id: string) => all.find(i => i.id === id)).filter(Boolean)
-            : all;
+            ? taggedIds.map((id: string) => allItems.find(i => i.id === id)).filter(Boolean)
+            : allItems;
     }, [settings.source, settings.taggedItems, lang, news, events, documents, pages, contacts, containerItems]);
 
     useEffect(() => {
@@ -890,13 +968,13 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
         const hasAction = btnEnabled && btnName;
 
         if (hasAction) {
-            const btnClasses = `w-max self-center mx-auto px-6 py-2.5 bg-[var(--primary-color)] text-[var(--text-on-primary)] font-bold text-xs rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
+            const btnClasses = `bg-[var(--btn-primary-bg)] text-white w-max self-center mx-auto transition-all active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center px-6 py-2 text-xs font-bold rounded-sm ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
             if (btnLinkType === 'container' && (btnContainerId || btnTargetContainerTitle)) {
                 let targetPage = null;
                 if (btnContainerId && btnContainerId !== 'custom') {
-                    targetPage = pages.find(p => p.containers?.some(c => c.id === btnContainerId));
+                    targetPage = pages.find(p => p.containers?.some((c: any) => c.id === btnContainerId));
                 } else if (btnTargetContainerTitle) {
-                    targetPage = pages.find(p => p.containers?.some(c => c.title === btnTargetContainerTitle));
+                    targetPage = pages.find(p => p.containers?.some((c: any) => c.title === btnTargetContainerTitle));
                 }
 
                 const isSamePage = targetPage?.id === currentPageId;
@@ -936,10 +1014,9 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                         target={cleanBtnUrl.startsWith('http') ? '_blank' : '_self'}
                         rel={cleanBtnUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
                         onClick={(e) => {
+                            e.stopPropagation();
                             if (!cleanBtnUrl.startsWith('http')) {
                                 onInternalLink(e, cleanBtnUrl);
-                            } else {
-                                e.stopPropagation();
                             }
                         }}
                         className={btnClasses}
@@ -951,8 +1028,8 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
         }
 
         const fallbackClasses = isOldLayout
-            ? "text-[var(--primary-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
-            : "text-[var(--primary-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto";
+            ? "text-[var(--link-color)] text-xs font-semibold flex items-center gap-1 hover:underline mt-2"
+            : "text-[var(--link-color)] font-bold text-xs flex items-center gap-1.5 hover:underline group/btn mt-auto";
 
         return (
             <button
@@ -1457,9 +1534,9 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                 : ((settings.bgImage || settings.backgroundImage) ? 'image' : ((settings.bgColor || settings.backgroundColor) ? 'color' : 'none'))
         )) as 'none' | 'color' | 'site-color' | 'image';
 
-    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor);
-    const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor);
-    const descColor = resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor);
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-[var(--primary-color)]');
+    const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor, 'text-[var(--text-secondary)]');
+    const descColor = resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor, 'text-[var(--text-secondary)]');
 
     // Helper function to generate random CAPTCHA
     const generateCaptcha = () => {
@@ -1631,7 +1708,6 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                 }}>
                 {resolvedBgType === 'image' && <div className="absolute inset-0 bg-black/50 z-0"></div>}
 
-                {/* Heading & Intro */}
                 <div className={`relative z-10 max-w-2xl mx-auto ${resolvedAlignment === 'center' ? 'text-center' : 'text-left'}`}>
                     {settings.heading && (
                         <h2 className={`text-3xl font-bold mb-3 uppercase tracking-wider ${titleColor.className || ''}`}
@@ -1640,15 +1716,15 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                         </h2>
                     )}
                     {settings.subheading && (
-                        <p className={`text-sm font-medium opacity-90 ${subtitleColor.className || ''}`}
-                            style={{ ...subtitleColor.style }}>
+                        <p className={`mt-1 font-medium ${subtitleColor.className || ''}`}
+                            style={subtitleColor.style}>
                             {getLocalizedText(settings.subheading, lang)}
                         </p>
                     )}
                     {settings.description && (
-                        <div className={`text-xs mt-3 ${descColor.className || ''}`}
-                            style={{ ...descColor.style }}>
-                            {renderRichText(getLocalizedText(settings.description, lang), "")}
+                        <div className={`mt-2 ${descColor.className || ''}`}
+                            style={descColor.style}>
+                            {renderRichText(getLocalizedText(settings.description, lang), "", descColor.style)}
                         </div>
                     )}
                 </div>
@@ -1755,11 +1831,12 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
 
                         <div className="pt-4">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                                CAPTCHA: <span className="text-blue-600 select-none" style={{ userSelect: 'none' }}>{generatedCaptcha}</span>
+                                CAPTCHA: <span className="select-none" style={{ userSelect: 'none', color: 'var(--primary-color)' }}>{generatedCaptcha}</span>
                                 <button
                                     type="button"
                                     onClick={handleRefreshCaptcha}
-                                    className="inline-flex items-center ml-2 text-blue-600 hover:text-blue-800 transition-colors"
+                                    className="inline-flex items-center ml-2 transition-colors"
+                                    style={{ color: 'var(--primary-color)' }}
                                     title="Refresh CAPTCHA"
                                 >
                                     <RefreshCw className="w-3 h-3" />
@@ -1904,8 +1981,8 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
                                                     onClick={() => handleSort(col.id)}
                                                     title={`Sort by ${col.header} `}
                                                 >
-                                                    <ArrowUp className={`w-2 h-2 ${isAsc ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`} />
-                                                    <ArrowDown className={`w-2 h-2 ${isDesc ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`} />
+                                                    <ArrowUp className={`w-2 h-2 ${isAsc ? 'opacity-100' : 'text-gray-300 hover:text-gray-500'}`} style={isAsc ? { color: 'var(--primary-color)' } : {}} />
+                                                    <ArrowDown className={`w-2 h-2 ${isDesc ? 'opacity-100' : 'text-gray-300 hover:text-gray-500'}`} style={isDesc ? { color: 'var(--primary-color)' } : {}} />
                                                 </div>
                                             </div>
                                         </th>
@@ -2020,7 +2097,7 @@ const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRende
                             style={{
                                 ...resolvedTitle.style,
                                 borderBottom: resolvedBg === 'transparent' ? `2px solid ${titleBorderColorLine}` : 'none',
-                                fontSize: themeConfig['--font-size-h2'] || '1.5rem',
+                                fontSize: themeConfig['--font-size-h2'] || '1.875rem',
                                 fontFamily: themeConfig['--font-family-base'] || 'inherit',
                                 textAlign: alignment === 'center' ? 'center' : 'left',
                                 paddingBottom: resolvedBg === 'transparent' ? '0.75rem' : '0'
@@ -2082,11 +2159,11 @@ const ContainerWrapper = React.memo(({ container, viewMode, lang, pageTitle, onI
                         onClick={handleEdit}
                         className="p-2 rounded-none shadow-md hover:opacity-90 transition-all"
                         style={{
-                            backgroundColor: 'var(--edit-icon-bg, #2563eb)',
+                            backgroundColor: 'var(--edit-icon-bg, var(--primary-color))',
                             color: 'var(--edit-icon-color, #ffffff)',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--edit-icon-hover-bg, #1d4ed8)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--edit-icon-bg, #2563eb)')}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--edit-icon-hover-bg, var(--primary-color))')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--edit-icon-bg, var(--primary-color))')}
                     >
                         <Pencil className="w-4 h-4" />
                     </button>
@@ -2150,8 +2227,7 @@ const TopNavDropdownItem = React.memo(({ item, allItems, onNavigate }: TopNavIte
                 href={item.url || '#'}
                 onClick={handleClick}
                 target={item.openInNewTab ? '_blank' : '_self'}
-                className="text-sm font-bold uppercase tracking-wide hover:opacity-70 transition-opacity flex items-center gap-1 py-2"
-                style={{ color: 'var(--text-primary)' }}
+                className="nav-link text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-1 py-2"
             >
                 {localizedTitle}
                 {hasChildren && <ChevronDown className="w-3 h-3 opacity-50" />}
@@ -2199,20 +2275,20 @@ const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProp
     const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
     return (
-        <div className="relative group/submenu px-4 py-2 hover:bg-gray-100">
+        <div className="relative group/subitem">
             <a
                 href={item.url || '#'}
                 onClick={handleClick}
                 target={item.openInNewTab ? '_blank' : '_self'}
-                className="text-sm font-medium text-gray-700 flex justify-between items-center"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[var(--primary-color)] transition-all flex items-center justify-between no-underline"
             >
-                {localizedTitle}
-                {hasChildren && <span className="text-xs">›</span>}
+                <span>{localizedTitle}</span>
+                {hasChildren && <ChevronRight className="w-4 h-4 opacity-50" />}
             </a>
 
             {/* Flyout Menu */}
             {hasChildren && (
-                <div className="absolute left-full top-0 hidden group-hover/submenu:block pl-1 z-50 min-w-[200px]">
+                <div className="absolute left-full top-0 hidden group-hover/subitem:block pl-1 z-50 min-w-[200px]">
                     <div className="bg-white border border-gray-200 shadow-xl rounded-none py-2">
                         {children.map(child => (
                             <TopNavSubItem key={child.id} item={child} allItems={allItems} onNavigate={onNavigate} />
@@ -2399,23 +2475,29 @@ export const PreviewArea: React.FC = () => {
     }, [pages, setCurrentPage, siteUrl]);
 
     // Resolve Background Color
-    const footerBg = useMemo(() => {
-        switch (footerConfig.backgroundColor) {
-            case 'white': return '#ffffff';
-            case 'light-grey': return '#f3f4f6';
-            case 'site-color': return 'var(--brand-dark)';
-            default: return footerConfig.backgroundColor;
-        }
+    const getFooterBg = useCallback(() => {
+        const bg = footerConfig.backgroundColor;
+        if (bg === 'white') return '#ffffff';
+        if (bg === 'light-grey') return '#f3f4f6';
+        if (bg === 'site-color') return 'var(--primary-color)';
+        return bg || 'var(--footer-bg)';
     }, [footerConfig.backgroundColor]);
 
-    const footerTextColor = useMemo(() => {
-        if (footerConfig.backgroundColor === 'white' || footerConfig.backgroundColor === 'light-grey') return 'var(--text-primary)';
-        return '#ffffff';
+    const getFooterTextColor = useCallback(() => {
+        const bg = footerConfig.backgroundColor;
+        if (bg === 'white' || bg === '#ffffff' || bg === 'light-grey' || bg === '#f3f4f6') {
+            return 'var(--text-primary)';
+        }
+        return 'var(--footer-text-color)';
     }, [footerConfig.backgroundColor]);
+
+    const footerBg = getFooterBg();
+    const footerTextColor = getFooterTextColor();
+    const footerHeadingColor = 'var(--footer-heading-color)';
 
     // Render Navigation Items based on visibility
-    const renderNavItems = React.useCallback(() => (
-        <nav className={`flex items-center gap-6 ${siteConfig.navPosition === 'below_logo' ? `justify-${siteConfig.navAlignment}` : ''} w-full h-full`}>
+    const renderNavItems = useCallback(() => (
+        <nav className={`flex items-center gap-6 ${siteConfig.navPosition === 'below_logo' ? `justify-${getTailwindAlign(siteConfig.navAlignment)}` : ''} w-full h-full`}>
             {siteConfig.navigation
                 .filter(n => n.parentId === 'root' && n.isVisible)
                 .sort((a, b) => a.order - b.order)
@@ -2427,9 +2509,13 @@ export const PreviewArea: React.FC = () => {
 
 
     const LogoComponent = useCallback(() => (
-        <div className="flex-shrink-0 cursor-pointer" onClick={(e) => handleInternalLink(e as any, '/')}>
-            {siteConfig.logo.url ? (
-                <div style={{ width: siteConfig.logo.width || '150px' }} className="h-16">
+        <a
+            href="/"
+            onClick={(e) => { e.preventDefault(); handleInternalLink(e as any, '/'); }}
+            className="flex items-center gap-3 no-underline group"
+        >
+            {siteConfig.logo?.url ? (
+                <div style={{ width: siteConfig.logo.width || '150px' }} className="h-10 transition-transform group-hover:scale-105">
                     <VisualImage
                         src={siteConfig.logo.url}
                         alt={siteConfig.name}
@@ -2438,11 +2524,17 @@ export const PreviewArea: React.FC = () => {
                     />
                 </div>
             ) : (
-                <div className="font-bold text-xl tracking-tight" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-family-base)' }}>
-                    {siteConfig.name}
+                <div className="w-10 h-10 bg-[var(--primary-color)] flex items-center justify-center text-white font-bold text-xl rounded-none shadow-inner group-hover:bg-opacity-90 transition-all">
+                    {siteConfig.name?.charAt(0) || 'S'}
                 </div>
             )}
-        </div>
+            {/* <span
+                className="font-bold text-xl tracking-tight hidden lg:block"
+                style={{ color: 'var(--header-text-color, var(--text-primary))', fontFamily: 'var(--font-family-base)' }}
+            >
+                {siteConfig.name}
+            </span> */}
+        </a>
     ), [siteConfig.logo, siteConfig.name, handleInternalLink]);
 
     if (isLoading) {
@@ -2490,19 +2582,19 @@ export const PreviewArea: React.FC = () => {
                 <header
                     className="sticky top-0 z-30 shadow-sm backdrop-blur-md bg-opacity-90 transition-all"
                     style={{
-                        backgroundColor: siteConfig.headerBackgroundColor || 'var(--bg-surface)',
+                        backgroundColor: 'var(--header-bg)',
                         borderBottom: '1px solid var(--border-color)'
                     }}
                 >
                     <div className={`mx-auto px-6 flex ${siteConfig.navPosition === 'below_logo' ? 'flex-col py-4 gap-4' : 'h-16 items-center justify-between'}`}
-                        style={{ maxWidth: siteConfig.headerWidth === 'standard' ? '80rem' : '100%' }}
+                        style={{ maxWidth: 'var(--header-max-width)' }}
                     >
 
                         {/* Case: Below Logo (Stacked) */}
                         {siteConfig.navPosition === 'below_logo' && (
                             <>
                                 <div className="flex w-full items-center justify-between">
-                                    <div className={`flex justify-${siteConfig.logo.position === 'center' ? 'center' : siteConfig.logo.position} flex-1`}>
+                                    <div className={`flex w-full justify-${getTailwindAlign(siteConfig.logo.position)}`}>
                                         <LogoComponent />
                                     </div>
                                     <div className="flex-shrink-0">
@@ -2562,7 +2654,7 @@ export const PreviewArea: React.FC = () => {
                             ))
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                                <TypeIcon className="w-12 h-12 mb-4 opacity-20" style={{ color: 'var(--icon-color, #2563eb)' }} />
+                                <TypeIcon className="w-12 h-12 mb-4 opacity-20" style={{ color: 'var(--icon-color, var(--primary-color))' }} />
                                 <p>This page is empty. Add containers to start building.</p>
                             </div>
                         )}
@@ -2577,23 +2669,24 @@ export const PreviewArea: React.FC = () => {
                             {footerConfig.template === 'Table' && (
                                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
                                     <div className="col-span-1 md:col-span-1">
-                                        <h4 className="font-bold mb-4" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
-                                        <p className="opacity-70 max-w-sm" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                        <h4 className="font-bold mb-4" style={{ fontSize: footerConfig.fontSettings.headingSize, color: footerHeadingColor }}>{siteConfig.name}</h4>
+                                        <p className="opacity-90 max-w-sm" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: footerTextColor }}>
                                             {getGlobalTranslation('footer_sub', translationItems, currentLanguage, footerConfig.subFooterText)}
                                         </p>
                                     </div>
                                     {footerConfig.columns.map(col => (
                                         <div key={col.id}>
-                                            <h5 className="font-bold mb-4 uppercase tracking-wider opacity-80" style={{ fontSize: footerConfig.fontSettings.headingSize }}>
+                                            <h5 className="font-bold mb-4 uppercase tracking-wider opacity-80" style={{ fontSize: footerConfig.fontSettings.headingSize, color: footerHeadingColor }}>
                                                 {getGlobalTranslation(`footer_col_${col.id}`, translationItems, currentLanguage, col.title)}
                                             </h5>
-                                            <ul className="space-y-2 opacity-70" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                            <ul className="space-y-2 opacity-80" style={{ fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                 {col.links.map(link => {
                                                     const cleanUrl = transformSharePointUrl(link.url);
                                                     return (
                                                         <li key={link.id}><a
                                                             href={cleanUrl}
-                                                            className="hover:underline"
+                                                            className="hover:underline transition-colors"
+                                                            style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}
                                                             onClick={(e) => handleInternalLink(e, cleanUrl)}
                                                         >
                                                             {getGlobalTranslation(`footer_link_${link.id}`, translationItems, currentLanguage, link.label)}
@@ -2617,19 +2710,19 @@ export const PreviewArea: React.FC = () => {
                                                 {(footerConfig.brandItems && footerConfig.brandItems.length > 0) ? (
                                                     footerConfig.brandItems.map((item: any, idx: number) => (
                                                         <div key={item.id}>
-                                                            <h4 className={idx === 0 ? "font-bold mb-1" : "opacity-80 leading-relaxed"} style={{
+                                                            <h5 className={idx === 0 ? "font-bold mb-1" : "opacity-80 leading-relaxed"} style={{
                                                                 fontSize: idx === 0 ? footerConfig.fontSettings.headingSize : footerConfig.fontSettings.subHeadingSize,
-                                                                color: footerTextColor
+                                                                color: 'black'
                                                             }}>
                                                                 {item.value || (idx === 0 ? siteConfig.name : '')}
-                                                            </h4>
+                                                            </h5>
                                                         </div>
                                                     ))
                                                 ) : (
                                                     <div className="text-left">
-                                                        <h4 className="font-bold mb-2 text-[var(--primary-color)]" style={{ fontSize: footerConfig.fontSettings.headingSize }}>{siteConfig.name}</h4>
+                                                        <h4 className="font-bold mb-2" style={{ fontSize: footerConfig.fontSettings.headingSize, color: 'black' }}>{siteConfig.name} </h4>
                                                         {footerConfig.contactInfo.address && (
-                                                            <p className="opacity-80 leading-relaxed text-[var(--primary-color)]" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: footerTextColor }}>
+                                                            <p className="opacity-80 leading-relaxed" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: footerTextColor }}>
                                                                 {footerConfig.contactInfo.address}
                                                             </p>
                                                         )}
@@ -2640,7 +2733,7 @@ export const PreviewArea: React.FC = () => {
                                                 <div className="mt-2 text-left">
                                                     <button
                                                         onClick={() => openModal(ModalType.FOOTER)}
-                                                        className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
+                                                        className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors shadow-sm"
                                                     >
                                                         <Plus className="w-6 h-6" />
                                                     </button>
@@ -2655,7 +2748,7 @@ export const PreviewArea: React.FC = () => {
                                                 <div className="flex flex-wrap justify-center gap-3">
                                                     {(footerConfig.socialItems && footerConfig.socialItems.length > 0) ? (
                                                         footerConfig.socialItems.map((item: any) => (
-                                                            <a key={item.id} href={item.url || '#'} className="hover:opacity-80 transition-all hover:scale-110">
+                                                            <a key={item.id} href={item.url || '#'} className="hover:opacity-80 transition-all hover:scale-110 bg-[var(--link-color)]">
                                                                 {getSocialIcon(item.type)}
                                                             </a>
                                                         ))
@@ -2663,12 +2756,12 @@ export const PreviewArea: React.FC = () => {
                                                         <div className="flex gap-4">
                                                             {footerConfig.socialLinks.facebook && (
                                                                 <a href={footerConfig.socialLinks.facebook} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Facebook className="w-5 h-5 text-[var(--text-on-primary)]" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--link-color)] flex items-center justify-center"><Facebook className="w-5 h-5 text-white" /></div>
                                                                 </a>
                                                             )}
                                                             {footerConfig.socialLinks.linkedin && (
                                                                 <a href={footerConfig.socialLinks.linkedin} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Linkedin className="w-5 h-5 text-[var(--text-on-primary)]" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--link-color)] flex items-center justify-center"><Linkedin className="w-5 h-5 text-white" /></div>
                                                                 </a>
                                                             )}
                                                         </div>
@@ -2679,7 +2772,7 @@ export const PreviewArea: React.FC = () => {
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
@@ -2699,15 +2792,15 @@ export const PreviewArea: React.FC = () => {
                                                 ) : (
                                                     <div className="space-y-3">
                                                         {footerConfig.contactInfo.email && (
-                                                            <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: footerTextColor, fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <a href={`mailto:${footerConfig.contactInfo.email}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-all font-medium" style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                                 <span>{footerConfig.contactInfo.email}</span>
-                                                                {getContactIcon('Email', footerTextColor)}
+                                                                <Mail className="w-5 h-5" />
                                                             </a>
                                                         )}
                                                         {footerConfig.contactInfo.phone && (
-                                                            <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-opacity" style={{ color: footerTextColor, fontSize: footerConfig.fontSettings.subHeadingSize }}>
+                                                            <a href={`tel:${footerConfig.contactInfo.phone}`} className="flex items-center justify-end gap-3 hover:opacity-80 transition-all font-medium" style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}>
                                                                 <span>{footerConfig.contactInfo.phone}</span>
-                                                                {getContactIcon('Phone', footerTextColor)}
+                                                                <Phone className="w-5 h-5" />
                                                             </a>
                                                         )}
                                                     </div>
@@ -2716,7 +2809,7 @@ export const PreviewArea: React.FC = () => {
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>
@@ -2725,11 +2818,11 @@ export const PreviewArea: React.FC = () => {
                                     </div>
 
                                     {/* Decorative Divider */}
-                                    <div className="h-px bg-gray-200 w-full mb-8"></div>
+                                    <div className="h-px bg-[var(--primary-color)]/20 w-full mb-8"></div>
 
                                     <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-4 h-min">
                                         <div className="flex flex-col items-start gap-2">
-                                            <div className="flex items-center gap-1 text-sm text-[var(--primary-color)]">
+                                            <div className="flex items-center gap-1 text-sm" style={{ color: footerTextColor }}>
                                                 {(footerConfig?.bottomLinks && footerConfig.bottomLinks.length > 0) ? (
                                                     footerConfig.bottomLinks.map((link: any, idx: number) => {
                                                         const cleanUrl = transformSharePointUrl(link.url || '#');
@@ -2737,7 +2830,8 @@ export const PreviewArea: React.FC = () => {
                                                             <React.Fragment key={link.id}>
                                                                 <a
                                                                     href={cleanUrl}
-                                                                    className="hover:opacity-80 transition-colors whitespace-nowrap px-1"
+                                                                    className="hover:underline transition-colors whitespace-nowrap px-1"
+                                                                    style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}
                                                                     onClick={(e) => handleInternalLink(e, cleanUrl)}
                                                                 >
                                                                     {link.label}
@@ -2747,17 +2841,17 @@ export const PreviewArea: React.FC = () => {
                                                         );
                                                     })
                                                 ) : (
-                                                    <div className="flex items-center gap-2 opacity-60">
-                                                        <a href="#" className="hover:text-[var(--primary-color)] transition-colors">{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
-                                                        <span>/</span>
-                                                        <a href="#" className="hover:text-[var(--primary-color)] transition-colors">{getTranslation('LBL_TERMS_SERVICE', currentLanguage) || 'Terms of Service'}</a>
+                                                    <div className="flex items-center gap-2" style={{ color: footerTextColor }}>
+                                                        <a href="#" className="hover:underline transition-colors" style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}>{getTranslation('LBL_PRIVACY_POLICY', currentLanguage) || 'Privacy Policy'}</a>
+                                                        <span className="opacity-40">/</span>
+                                                        <a href="#" className="hover:underline transition-colors" style={{ color: 'var(--link-color)', fontSize: footerConfig.fontSettings.subHeadingSize }}>{getTranslation('LBL_TERMS_SERVICE', currentLanguage) || 'Terms of Service'}</a>
                                                     </div>
                                                 )}
                                             </div>
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
                                                     onClick={() => openModal(ModalType.FOOTER)}
-                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-blue-50 transition-colors shadow-sm"
+                                                    className="w-10 h-10 rounded-full border border-[var(--primary-color)] bg-white flex items-center justify-center text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors shadow-sm"
                                                 >
                                                     <Plus className="w-6 h-6" />
                                                 </button>

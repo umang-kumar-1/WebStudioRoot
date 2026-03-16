@@ -212,6 +212,7 @@ export const DEFAULT_THEME: ThemeConfig = {
   '--heading-h6-color': 'var(--heading-color)',
 
   '--font-size-base': '14px',
+  '--font-size-p': '14px',
   '--font-size-h1': '42px',
   '--font-size-h2': '32px',
   '--font-size-h3': '24px',
@@ -225,6 +226,14 @@ export const DEFAULT_THEME: ThemeConfig = {
   '--edit-icon-bg': '#2563eb',
   '--edit-icon-color': '#ffffff',
   '--edit-icon-hover-bg': '#1d4ed8',
+
+  // Site Wide Layout (New)
+  '--header-bg': '#ffffff',
+  '--footer-bg': '#2f5596',
+  '--header-max-width': '100%',
+  '--logo-width': '150px',
+  '--footer-heading-color': '#ffffff',
+  '--footer-text-color': '#e5e7eb',
 };
 
 export const GLOBAL_DEFAULT_IMAGE = '';
@@ -992,7 +1001,7 @@ export const useStore = create<AppState>()(
       ],
 
       siteConfig: {
-        name: 'My Enterprise Site',
+        name: '',
         languages: ['en', 'de', 'fr', 'es'],
         defaultLanguage: 'en',
         navPosition: 'right',

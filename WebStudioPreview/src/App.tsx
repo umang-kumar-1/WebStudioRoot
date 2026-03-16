@@ -5,14 +5,23 @@ import { PreviewArea } from './components/PreviewArea';
 import './App.css';
 
 function App() {
-  const { themeConfig } = useStore();
+  const { themeConfig, siteConfig } = useStore();
 
   // Apply theme variables to root
   useEffect(() => {
     Object.entries(themeConfig).forEach(([key, value]) => {
       document.documentElement.style.setProperty(key, value);
     });
-  }, [themeConfig]);
+
+    // Also apply specific site config variables
+    if (siteConfig?.headerBackgroundColor) {
+      let resolvedHeaderBg = siteConfig.headerBackgroundColor;
+      if (resolvedHeaderBg === 'site-color' || resolvedHeaderBg === 'site' || resolvedHeaderBg === 'sitecolor') {
+        resolvedHeaderBg = themeConfig['--primary-color'] || '#2f5596';
+      }
+      document.documentElement.style.setProperty('--header-bg', resolvedHeaderBg);
+    }
+  }, [themeConfig, siteConfig?.headerBackgroundColor]);
 
   return (
     <BrowserRouter>

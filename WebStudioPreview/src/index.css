@@ -3,99 +3,287 @@
 @tailwind utilities;
 
 /* --- Global Typography Mapping (from SharePoint custom.css) --- */
+
 :root {
-    font-family: var(--font-family-base, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif);
-    font-size: var(--font-size-base, 14px);
-    --primary-color: #2f5596;
-    /* Fallback */
+    font-family: var(--font-family-base) !important;
+    font-size: var(--font-size-base) !important;
 }
 
 h1,
 .h1 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h1) !important;
-    color: var(--heading-h1-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h1-color) !important;
+    font-weight: var(--font-weight-bold) !important;
 }
 
 h2,
 .h2 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h2) !important;
-    color: var(--heading-h2-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h2-color) !important;
+    font-weight: var(--font-weight-bold) !important;
 }
 
 h3,
 .h3 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h3) !important;
-    color: var(--heading-h3-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h3-color) !important;
+    font-weight: var(--font-weight-bold) !important;
 }
 
 h4,
 .h4 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h4) !important;
-    color: var(--heading-h4-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h4-color) !important;
+    font-weight: var(--font-weight-bold) !important;
 }
 
 h5,
 .h5 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h5) !important;
-    color: var(--heading-h5-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h5-color) !important;
+    font-weight: var(--font-weight-bold) !important;
 }
 
 h6,
 .h6 {
-    font-family: var(--font-family-secondary);
+    font-family: var(--font-family-secondary) !important;
     font-size: var(--font-size-h6) !important;
-    color: var(--heading-h6-color);
-    font-weight: var(--font-weight-bold);
-    margin-top: 0;
+    color: var(--heading-h6-color) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+p {
+    font-size: var(--font-size-p) !important;
 }
 
 p,
 span,
-div {
+div,
+li,
+td,
+th {
+    font-family: var(--font-family-base) !important;
+    color: inherit;
+}
+
+.text-primary {
+    color: var(--text-primary) !important;
+}
+
+.text-secondary {
+    color: var(--text-secondary) !important;
+}
+
+.text-link {
+    color: var(--link-color) !important;
+}
+
+.text-link-hover:hover {
+    color: var(--link-hover-color) !important;
+}
+
+body,
+#root,
+.App {
+    color: var(--text-primary) !important;
+    background-color: var(--bg-body) !important;
+}
+
+/* --- Global Link Styles --- */
+a {
+    color: var(--link-color) !important;
+    text-decoration: none;
+    transition: all 0.2s ease-in-out;
+}
+
+a:hover {
+    color: var(--link-hover-color) !important;
+    text-decoration: underline !important;
+}
+
+.nav-link {
+    color: var(--text-primary) !important;
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+    opacity: 0.8;
+}
+
+/* --- Global Button Defaults --- */
+button:not(.lucide) {
     font-family: var(--font-family-base);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Fix for Tailwind base resetting heading styles too much */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    @apply leading-tight;
+/* Base Primary Button Injection */
+.btn-primary,
+button.bg-blue-600,
+button.bg-blue-500,
+button.bg-blue-700,
+button.bg-primary,
+button.bg-\[var\(--btn-primary-bg\)\],
+button.bg-\[var\(--primary-color\)\] {
+    background-color: var(--btn-primary-bg) !important;
+    color: var(--btn-primary-text) !important;
+    padding: var(--btn-padding-y) var(--btn-padding-x);
+    font-size: var(--btn-font-size);
+    border-radius: var(--border-radius-md) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Ensure border none is respected and doesn't conflict with other card styles */
-.border-none {
-    border: none !important;
+.btn-primary:hover,
+button.bg-blue-600:hover,
+button.bg-blue-500:hover,
+button.bg-primary:hover {
+    background-color: var(--btn-primary-hover-bg) !important;
+    opacity: 0.95 !important;
+    transform: translateY(-1px);
 }
 
-/* --- Optimized Image Shimmer --- */
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-
-    100% {
-        background-position: 200% 0;
-    }
+.btn-secondary,
+button.bg-gray-100 {
+    background-color: var(--btn-secondary-bg) !important;
+    color: var(--btn-secondary-text) !important;
+    border: 1px solid var(--border-color) !important;
 }
 
-.animate-shimmer {
-    animation: shimmer 2s infinite linear;
+/* Theme-aware Text Colors */
+.text-\[var\(--primary-color\)\],
+.text-\[var\(--link-color\)\],
+.text-\[var\(--sidebar-icon-color\)\],
+.text-\[var\(--sidebar-active-text-color\)\],
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-\[var\(--link-color\)\] {
+    color: var(--link-color) !important;
+}
+
+.text-\[var\(--sidebar-icon-color\)\] {
+    color: var(--sidebar-icon-color) !important;
+}
+
+.text-\[var\(--sidebar-active-text-color\)\] {
+    color: var(--sidebar-active-text-color) !important;
+}
+
+.border-\[var\(--primary-color\)\],
+.border-\[var\(--sidebar-border-color\)\],
+.border-blue-600 {
+    border-color: var(--primary-color) !important;
+}
+
+.bg-\[var\(--primary-color\)\],
+.bg-\[var\(--sidebar-button-color\)\],
+.bg-\[var\(--sidebar-active-bg\)\],
+.bg-\[var\(--sidebar-active-indicator-color\)\] {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-\[var\(--sidebar-button-color\)\] {
+    background-color: var(--sidebar-button-color) !important;
+}
+
+.bg-\[var\(--sidebar-active-bg\)\] {
+    background-color: var(--sidebar-active-bg) !important;
+}
+
+.bg-\[var\(--sidebar-active-indicator-color\)\] {
+    background-color: var(--sidebar-active-indicator-color) !important;
+}
+
+.bg-blue-50,
+.bg-primary-light,
+.bg-\[var\(--brand-light\)\],
+.hover\:bg-blue-50:hover,
+.hover\:bg-slate-50:hover {
+    background-color: var(--brand-light) !important;
+}
+
+.border-blue-100 {
+    border-color: var(--brand-light) !important;
+}
+
+/* --- Sidebar Theme Support --- */
+.sidebar-active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text-color);
+    border-left: 3px solid var(--sidebar-active-indicator-color);
+}
+
+/* --- Jodit Content Rendering --- */
+.jodit-content h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.jodit-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+}
+
+.jodit-content h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.jodit-content ul {
+    list-style-type: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.jodit-content ol {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.jodit-content li {
+    margin-bottom: 0.25rem;
+}
+
+.jodit-content p {
+    margin-bottom: 1rem;
+}
+
+.jodit-content a {
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.jodit-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.jodit-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.jodit-content td,
+.jodit-content th {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+}
+
+.jodit-content th {
+    background-color: var(--brand-light);
 }

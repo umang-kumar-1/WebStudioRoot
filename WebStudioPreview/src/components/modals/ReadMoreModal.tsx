@@ -4,7 +4,7 @@ import { GenericModal } from './SharedModals';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { VisualImage } from '../VisualImage';
 
-export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) => {
+export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition, imgBorder }: any) => {
     // Resolve images: support both 'images' array and single 'img'/'imageUrl' property
     const images = item.images && item.images.length > 0
         ? item.images
@@ -26,7 +26,7 @@ export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) 
     return createPortal(
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <GenericModal
-                title={item.title}
+                title={isNumbered && index !== undefined ? `${index + 1}. ${item.title}` : item.title}
                 onClose={onClose}
                 width="w-[800px]"
                 noFooter={true}
@@ -47,9 +47,10 @@ export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) 
                                     />
                                 </div>
                                 {(item.jobTitle || item.company) && (
-                                    <p className="text-sm text-gray-500 font-medium mt-3 text-center">
-                                        {item.jobTitle}{item.jobTitle && item.company ? ` at ${item.company}` : item.company}
-                                    </p>
+                                    <div className="mt-3 text-center">
+                                        {item.jobTitle && <p className="text-sm font-bold text-gray-900">{item.jobTitle}</p>}
+                                        {item.company && <p className="text-xs text-gray-500 font-medium">{item.company}</p>}
+                                    </div>
                                 )}
                             </div>
                         ) : (
@@ -80,22 +81,18 @@ export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) 
 
                     {/* Content Section */}
                     <div className="space-y-6 px-1 pb-4">
-                        <div className="flex items-start gap-6">
-                            <div className="space-y-3">
-                                {item.date && (
-                                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary-color)]">
-                                        <Calendar className="w-4 h-4" />
-                                        {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
-                                        {item.endDate && item.endDate !== item.date && (
-                                            <>
-                                                <span className="text-gray-400 mx-1"> - </span>
-                                                {new Date(item.endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
-                                            </>
-                                        )}
-                                    </div>
+                        {item.date && (
+                            <div className="flex items-center gap-2 text-sm font-bold text-[var(--primary-color)]">
+                                <Calendar className="w-4 h-4" />
+                                {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                {item.endDate && item.endDate !== item.date && (
+                                    <>
+                                        <span className="text-gray-400 mx-1"> - </span>
+                                        {new Date(item.endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </>
                                 )}
                             </div>
-                        </div>
+                        )}
 
                         <div
                             className="text-gray-700 leading-relaxed text-base jodit-content"

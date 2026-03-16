@@ -125,7 +125,7 @@ export const GenericModal = memo(({ title, subtitle, children, onClose, width = 
 
 export const ConfirmDeleteDialog = ({ title, message, onConfirm, onCancel }: any) => {
     const { currentLanguage } = useStore();
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white w-[450px] shadow-2xl rounded-sm border border-gray-300 flex flex-col overflow-hidden">
                 <div className="p-8 text-center">
@@ -140,7 +140,8 @@ export const ConfirmDeleteDialog = ({ title, message, onConfirm, onCancel }: any
                     <button onClick={onConfirm} className="flex-1 py-4 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors">{getTranslation('BTN_DELETE', currentLanguage)}</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
