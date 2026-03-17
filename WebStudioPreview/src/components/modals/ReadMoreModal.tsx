@@ -1,10 +1,10 @@
+
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GenericModal } from './SharedModals';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { VisualImage } from '../VisualImage';
 
-export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition, imgBorder }: any) => {
+export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) => {
     // Resolve images: support both 'images' array and single 'img'/'imageUrl' property
     const images = item.images && item.images.length > 0
         ? item.images
@@ -26,9 +26,9 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition,
     return createPortal(
         <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <GenericModal
-                title={isNumbered && index !== undefined ? `${index + 1}. ${item.title}` : item.title}
+                title={item.title}
                 onClose={onClose}
-                width="w-[800px]"
+                width="max-w-[800px]"
                 noFooter={true}
                 customFooter={customFooter}
             >
@@ -39,28 +39,25 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition,
                             /* Circle / Half-circle: centered circular avatar */
                             <div className="flex flex-col items-center mb-6">
                                 <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-gray-100 shadow-lg flex-shrink-0 bg-gray-100">
-                                    <VisualImage
+                                    <img
                                         src={images[currentImgIndex]}
                                         className="w-full h-full object-cover"
                                         alt={item.title}
-                                        priority={true}
                                     />
                                 </div>
                                 {(item.jobTitle || item.company) && (
-                                    <div className="mt-3 text-center">
-                                        {item.jobTitle && <p className="text-sm font-bold text-gray-900">{item.jobTitle}</p>}
-                                        {item.company && <p className="text-xs text-gray-500 font-medium">{item.company}</p>}
-                                    </div>
+                                    <p className="text-sm text-gray-500 font-medium mt-3 text-center">
+                                        {item.jobTitle}{item.jobTitle && item.company ? ` at ${item.company}` : item.company}
+                                    </p>
                                 )}
                             </div>
                         ) : (
                             /* Standard: full-width rectangular image with optional carousel */
                             <div className="w-full h-[400px] bg-gray-100 relative mb-8 rounded-sm overflow-hidden flex-shrink-0 group">
-                                <VisualImage
+                                <img
                                     src={images[currentImgIndex]}
                                     className="w-full h-full object-cover"
                                     alt={item.title}
-                                    priority={true}
                                 />
                                 {images.length > 1 && (
                                     <>
@@ -81,18 +78,22 @@ export const ReadMoreModal = ({ item, onClose, isNumbered, index, imagePosition,
 
                     {/* Content Section */}
                     <div className="space-y-6 px-1 pb-4">
-                        {item.date && (
-                            <div className="flex items-center gap-2 text-sm font-bold text-[var(--primary-color)]">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
-                                {item.endDate && item.endDate !== item.date && (
-                                    <>
-                                        <span className="text-gray-400 mx-1"> - </span>
-                                        {new Date(item.endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
-                                    </>
+                        <div className="flex items-start gap-6">
+                            <div className="space-y-3">
+                                {item.date && (
+                                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--primary-color)]">
+                                        <Calendar className="w-4 h-4" />
+                                        {new Date(item.date).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                        {item.endDate && item.endDate !== item.date && (
+                                            <>
+                                                <span className="text-gray-400 mx-1"> - </span>
+                                                {new Date(item.endDate).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
+                                            </>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                        )}
+                        </div>
 
                         <div
                             className="text-gray-700 leading-relaxed text-base jodit-content"
