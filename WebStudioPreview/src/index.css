@@ -131,8 +131,8 @@ button.bg-\[var\(--btn-primary-bg\)\],
 button.bg-\[var\(--primary-color\)\] {
     background-color: var(--btn-primary-bg) !important;
     color: var(--btn-primary-text) !important;
-    padding: var(--btn-padding-y) var(--btn-padding-x);
-    font-size: var(--btn-font-size);
+    padding: var(--btn-padding-y) var(--btn-padding-x) !important;
+    font-size: var(--btn-font-size) !important;
     border-radius: var(--border-radius-md) !important;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
@@ -151,6 +151,8 @@ button.bg-gray-100 {
     background-color: var(--btn-secondary-bg) !important;
     color: var(--btn-secondary-text) !important;
     border: 1px solid var(--border-color) !important;
+    padding: var(--btn-padding-y) var(--btn-padding-x) !important;
+    font-size: var(--btn-font-size) !important;
 }
 
 /* Theme-aware Text Colors */

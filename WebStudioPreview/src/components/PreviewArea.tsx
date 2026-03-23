@@ -105,10 +105,11 @@ const GeoChartMap = ({ mapType, selectedRegion, selectedState, height = 400 }: {
             region,
             displayMode: 'region',
             resolution,
-            colorAxis: { minValue: 0, colors: ['#dbeafe', resolvedColor] },
-            backgroundColor: '#f0f4ff',
-            datalessRegionColor: '#e2e8f0',
-            defaultColor: '#e2e8f0',
+            colorAxis: { minValue: 0, colors: ['var(--brand-light)', resolvedColor] },
+            backgroundColor: 'var(--bg-body)',
+            datalessRegionColor: 'var(--border-color)',
+            defaultColor: 'var(--border-color)',
+
             legend: 'none',
         };
         const chart = new g.visualization.GeoChart(containerRef.current);
@@ -149,18 +150,20 @@ const renderRichText = (html: string, className?: string, style?: React.CSSPrope
 
 const getDocIcon = (type: string) => {
     switch (type) {
-        case 'Word': return <FileText className="w-16 h-16 opacity-80" style={{ color: 'var(--primary-color)' }} />;
+        case 'Word': return <FileText className="w-16 h-16 text-[var(--primary-color)] opacity-80" />;
+
         case 'Excel': return <FileSpreadsheet className="w-16 h-16 text-green-600 opacity-80" />;
         case 'PDF': return <File className="w-16 h-16 text-red-500 opacity-80" />;
         case 'PPT':
         case 'Presentations': return <Presentation className="w-16 h-16 text-orange-500 opacity-80" />;
-        case 'Link': return <LinkIcon className="w-16 h-16 text-sky-500 opacity-80" />;
+        case 'Link': return <LinkIcon className="w-16 h-16 text-[var(--link-color)] opacity-80" />;
         default: return <File className="w-16 h-16 text-gray-400 opacity-80" />;
     }
 };
 
 const getSocialIcon = (type: string) => {
-    const iconStyle = { color: 'var(--text-on-primary)', width: '20px', height: '20px' };
+    const iconStyle = { color: 'white', width: '20px', height: '20px' };
+
     const containerClass = "w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm";
     const bgStyle = { backgroundColor: 'var(--primary-color)' };
 
@@ -184,50 +187,20 @@ const getContactIcon = (type: string, color: string = 'var(--primary-color)') =>
 };
 
 // Helper to resolve color setting into className or style object
-const resolveColor = (colorSetting?: string, customHex?: string, defaultClass: string = 'text-inherit'): { className?: string; style?: React.CSSProperties } => {
+const resolveColor = (colorSetting?: string, customHex?: string, defaultClass: string = 'text-inherit', varName?: string): { className?: string; style?: React.CSSProperties } => {
     if (!colorSetting) return { className: defaultClass };
 
     let colorValue: string | undefined;
-    let className: string | undefined;
-
-    // Support both 'site-color' and shorthand 'site'
-    if (colorSetting === 'site' || colorSetting === 'site-color' || colorSetting === 'sitecolor') {
-        colorValue = 'var(--primary-color)';
-        className = 'text-[var(--primary-color)]';
-    }
-    // Handle explicit color/custom setting with hex
-    else if (colorSetting === 'color' || colorSetting === 'custom') {
-        if (customHex) colorValue = customHex;
-        else return { className: defaultClass };
-    }
-    // Handle hex string passed directly in colorSetting (fallback)
-    else if (colorSetting.startsWith('#')) {
-        colorValue = colorSetting;
-    }
-    else if (colorSetting === 'white') {
-        colorValue = '#ffffff';
-        className = 'text-white';
-    }
-    else if (colorSetting === 'black') {
-        colorValue = '#000000';
-        className = 'text-black';
-    }
+    if (colorSetting === 'site' || colorSetting === 'site-color' || colorSetting === 'sitecolor') colorValue = 'var(--primary-color)';
+    else if ((colorSetting === 'color' || colorSetting === 'custom') && customHex) colorValue = customHex;
+    else if (colorSetting === 'white') colorValue = '#ffffff';
+    else if (colorSetting === 'black') colorValue = '#000000';
+    else if (colorSetting.startsWith('#')) colorValue = colorSetting;
 
     if (colorValue) {
-        return {
-            className,
-            style: {
-                color: colorValue,
-                // Override CSS variables used in index.css with !important to ensure priority
-                '--heading-h1-color': colorValue,
-                '--heading-h2-color': colorValue,
-                '--heading-h3-color': colorValue,
-                '--heading-h4-color': colorValue,
-                '--heading-h5-color': colorValue,
-                '--heading-h6-color': colorValue,
-                '--text-primary': colorValue,
-            } as any
-        };
+        const style: any = { color: colorValue };
+        if (varName) style[varName] = colorValue;
+        return { style };
     }
 
     return { className: defaultClass };
@@ -250,11 +223,11 @@ interface ComponentRendererProps {
 // --- RENDERER 1: HEADER / HERO ---
 const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings, content } = container;
-    const { pages, currentPageId } = useStore();
+    const { pages, currentPageId, themeConfig } = useStore();
 
-    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor);
-    const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor);
-    const descColor = resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor);
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-[var(--primary-color)]', '--heading-h1-color');
+    const subtitleColor = resolveColor(settings.subtitleColor, settings.subtitleCustomColor, 'text-[var(--text-secondary)]', '--heading-h2-color');
+    const descColor = resolveColor(settings.descColor, settings.descCustomColor, 'text-[var(--text-secondary)]', '--text-primary');
     const textAlign = settings.align === 'left' ? 'text-left' : (settings.align === 'right' ? 'text-right' : 'text-center');
     const letterCase = settings.letterCase === 'uppercase' ? 'uppercase' : (settings.letterCase === 'lowercase' ? 'lowercase' : (settings.letterCase === 'capitalize' ? 'capitalize' : 'normal-case'));
 
@@ -314,7 +287,7 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                                         onInternalLink(e, finalUrl);
                                     }
                                 }}
-                                className="px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
+                                className="btn-primary transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider"
                             >
                                 {settings.btnName}
                             </button>
@@ -331,14 +304,14 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                                         onInternalLink(e, cleanBtnUrl);
                                     }
                                 }}
-                                className="inline-block px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline"
+                                className="btn-primary transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider no-underline inline-flex items-center justify-center"
                             >
                                 {settings.btnName}
                             </a>
                         );
                     })() : (
                         /* ---- No Link configured (placeholder) ---- */
-                        <button className="px-8 py-3 bg-[var(--btn-primary-bg)] text-white font-bold text-sm rounded-sm shadow-md hover:opacity-90 transition-all hover:shadow-lg active:scale-[0.98] uppercase tracking-wider">
+                        <button className="btn-primary transition-all hover:shadow-lg active:scale-[0.98] tracking-wider">
                             {settings.btnName}
                         </button>
                     )}
@@ -350,7 +323,7 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
     // Unified Background Resolution
     const bgType = (settings.bgType || 'none').toLowerCase();
     const resolvedBgType = bgType === 'site' || bgType === 'site-color' || bgType === 'sitecolor' ? 'site-color' : bgType;
-    const resolvedBgColor = settings.bgColor || settings.backgroundColor || '#ffffff';
+    const resolvedBgColor = settings.bgColor || settings.backgroundColor;
 
     // New "Layout Design Section" support (Split Screen)
     if (resolvedBgType === 'layout') {
@@ -361,9 +334,10 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                 {/* Image Side */}
                 <div className="w-full md:w-1/2 relative bg-gray-200">
                     {settings.bgImage ? (
-                        <div className="absolute inset-0 z-0">
-                            <VisualImage src={settings.bgImage} alt="Hero background" priority={true} className="w-full h-full object-cover object-center" />
-                        </div>
+                        <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${settings.bgImage})` }}
+                        />
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-gray-400">
                             <span className="text-sm font-bold uppercase tracking-widest">No Image Selected</span>
@@ -372,8 +346,8 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
                 </div>
                 {/* Text Side */}
                 <div
-                    className={`w-full md:w-1/2 flex items-center justify-center p-12 ${resolvedBgColor ? '' : 'bg-[var(--bg-surface)]'}`}
-                    style={{ backgroundColor: resolvedBgColor === 'site-color' ? 'var(--primary-color)' : (resolvedBgColor === 'site' ? 'var(--primary-color)' : resolvedBgColor) }}
+                    className={`w-full md:w-1/2 flex items-center justify-center p-12 ${settings.bgColor ? '' : ''}`}
+                    style={{ backgroundColor: resolvedBgColor === 'site-color' || resolvedBgColor === 'site' ? 'var(--primary-color)' : (resolvedBgColor || themeConfig['--bg-body']) }}
                 >
                     <div className={textAlign}>
                         <ContentBlock />
@@ -385,18 +359,16 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
 
     // Standard Styles
     const bgStyle: React.CSSProperties = {
-        backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : (resolvedBgType === 'none' ? 'transparent' : 'var(--bg-body)')),
+        backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : (resolvedBgType === 'none' ? 'transparent' : themeConfig['--bg-body'])),
+        backgroundImage: resolvedBgType === 'image' && settings.bgImage ? `url(${settings.bgImage})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         minHeight: settings.minHeight === 'full' ? '100vh' : '600px',
     };
 
     return (
         <div className={`w-full relative flex flex-col justify-center py-20 px-6 ${textAlign}`} style={bgStyle}>
-            {resolvedBgType === 'image' && settings.bgImage && (
-                <div className="absolute inset-0 z-0">
-                    <VisualImage src={settings.bgImage} alt="Background" priority={true} className="w-full h-full object-cover object-center" />
-                    <div className="absolute inset-0 bg-black/40"></div>
-                </div>
-            )}
+            {resolvedBgType === 'image' && <div className="absolute inset-0 bg-black/40 z-0"></div>}
             <ContentBlock />
         </div>
     );
@@ -408,7 +380,7 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
     const [current, setCurrent] = useState(0);
     const [editingSlide, setEditingSlide] = useState<any | null>(null);
     const [showSliderManager, setShowSliderManager] = useState(false);
-    const { sliderItems, updateSliderItem, deleteSliderItem, viewMode } = useStore();
+    const { sliderItems, updateSliderItem, deleteSliderItem, viewMode, themeConfig } = useStore();
 
     const taggedIds = container.settings.taggedItems || [];
     const taggedSliderItems = taggedIds
@@ -469,9 +441,9 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
     const descStyle: React.CSSProperties = container.settings.descFontSize ? { fontSize: `${container.settings.descFontSize}px` } : {};
 
     // Resolve specific typography colors for Slider
-    const slideTitleColor = resolveColor(container.settings.titleColor, container.settings.titleCustomColor);
-    const slideSubtitleColor = resolveColor(container.settings.subtitleColor || container.settings.titleColor, container.settings.subtitleCustomColor || container.settings.titleCustomColor);
-    const slideDescColor = resolveColor(container.settings.descColor || container.settings.titleColor, container.settings.descCustomColor || container.settings.titleCustomColor);
+    const slideTitleColor = resolveColor(container.settings.titleColor, container.settings.titleCustomColor, 'text-[var(--primary-color)]', '--heading-h2-color');
+    const slideSubtitleColor = resolveColor(container.settings.subtitleColor || container.settings.titleColor, container.settings.subtitleCustomColor || container.settings.titleCustomColor, 'text-[var(--text-secondary)]', '--heading-h3-color');
+    const slideDescColor = resolveColor(container.settings.descColor || container.settings.titleColor, container.settings.descCustomColor || container.settings.titleCustomColor, 'text-[var(--text-secondary)]', '--text-primary');
 
     const next = () => { if (current < dynamicSlides.length - 1) setCurrent((p) => p + 1); };
     const prev = () => { if (current > 0) setCurrent((p) => p - 1); };
@@ -502,7 +474,7 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
         const showSubtitleSeparately = slideSubtitle && slideSubtitle !== slideDesc;
 
         return (
-            <div className="w-full bg-white relative py-16 flex items-center justify-center">
+            <div className="w-full bg-transparent relative py-16 flex items-center justify-center">
                 {editingSlide && (
                     <SliderItemEditor
                         item={editingSlide}
@@ -514,18 +486,31 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
                 <div className="w-full max-w-6xl px-8">
                     <div className={`mb-8 ${sectionHeaderAlignClass} w-full`}>
                         {sliderTitle && (
-                            <h1 className="font-bold text-[var(--primary-color)]" style={{ ...titleStyle, ...(container.settings.titleFontSize ? {} : { fontSize: '1.875rem' }) }}>{sliderTitle}</h1>
+                            <h1 className={`${slideTitleColor.className || ''} font-bold`} style={{ ...titleStyle, ...slideTitleColor.style, ...(container.settings.titleFontSize ? {} : { fontSize: '1.875rem' }) }}>{sliderTitle}</h1>
                         )}
                         {sectionSubheading && (
-                            <p className="text-gray-500 mt-2" style={subtitleStyle}>{getLocalizedText(sectionSubheading, lang) || sectionSubheading}</p>
+                            <p className={`${slideSubtitleColor.className || ''} mt-2`} style={{ ...subtitleStyle, ...slideSubtitleColor.style }}>{getLocalizedText(container.settings.subheading, lang) || container.settings.subheading}</p>
                         )}
-                        {sliderDescription && renderRichText(sliderDescription, `text-sm text-gray-600 leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''}`)}
+                        {sliderDescription && renderRichText(
+                            sliderDescription,
+                            `text-sm leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''} ${slideDescColor.className || ''}`,
+                            slideDescColor.style
+                        )}
                     </div>
-                    <div className="flex flex-col lg:flex-row gap-12 items-center bg-white">
-                        <div className="flex-1 space-y-6">
+                    <div className="flex flex-col lg:flex-row gap-12 items-center bg-transparent">
+                        <div className={`flex-1 flex flex-col space-y-6 items-start text-left`}>
                             {showTitle && (
                                 <div className="flex items-center gap-2 group/slide">
-                                    <h2 className={`font-bold ${slideTitleColor.className || ''}`} style={{ ...titleStyle, ...slideTitleColor.style }}>{getLocalizedText(activeSlide.title, lang)}</h2>
+                                    <h2 className="font-bold text-gray-800" style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h2>
+                                    {activeSlide.originalItem && (
+                                        <button
+                                            onClick={() => setEditingSlide(activeSlide.originalItem)}
+                                            className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
+                                            title="Edit slide"
+                                        >
+                                            <Pencil className="w-5 h-5" style={{ color: 'var(--icon-color)' }} />
+                                        </button>
+                                    )}
                                 </div>
                             )}
                             {showDesc && (
@@ -533,53 +518,40 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
                                     {showSubtitleSeparately && renderRichText(
                                         slideSubtitle,
                                         `font-medium text-left ${slideSubtitleColor.className || ''}`,
-                                        { ...subtitleStyle, ...slideSubtitleColor.style }
+                                        slideSubtitleColor.style
                                     )}
                                     {slideDesc && renderRichText(
                                         slideDesc,
                                         `leading-relaxed text-left ${slideDescColor.className || ''}`,
-                                        { ...descStyle, ...slideDescColor.style }
+                                        slideDescColor.style
                                     )}
                                 </>
                             )}
                             {activeSlide.cta && (
-                                <button
-                                    onClick={(e) => {
-                                        if (activeSlide.url) {
-                                            const cleanUrl = transformSharePointUrl(activeSlide.url);
-                                            _onInternalLink(e, cleanUrl);
-                                        }
-                                    }}
-                                    className="px-6 py-2 bg-[var(--btn-primary-bg)] text-white font-bold rounded-sm shadow-sm transition-opacity hover:opacity-90"
-                                >
-                                    {getLocalizedText(activeSlide.cta, lang)}
-                                </button>
+                                <button className="btn-primary">{getLocalizedText(activeSlide.cta, lang)}</button>
                             )}
                             <div className="flex gap-2 pt-4">
                                 <button
                                     onClick={prev}
-                                    disabled={!canPrev}
-                                    className={`p-2 rounded-sm transition-colors ${canPrev ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
+                                    disabled={current === 0}
+                                    className={`p-2 transition-colors ${current > 0 ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-200 cursor-not-allowed opacity-50'}`}
+                                    style={{ borderRadius: 'var(--border-radius-sm)' }}
                                 >
-                                    <ChevronLeft className="w-4 h-4" />
+                                    <ChevronLeft className="w-5 h-5" style={{ color: current > 0 ? 'white' : 'var(--icon-color)' }} />
                                 </button>
                                 <button
                                     onClick={next}
-                                    disabled={!canNext}
-                                    className={`p-2 rounded-sm transition-colors ${canNext ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'}`}
+                                    disabled={current === dynamicSlides.length - 1}
+                                    className={`p-2 transition-colors ${current < dynamicSlides.length - 1 ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-200 cursor-not-allowed opacity-50'}`}
+                                    style={{ borderRadius: 'var(--border-radius-sm)' }}
                                 >
-                                    <ChevronRight className="w-4 h-4" />
+                                    <ChevronRight className="w-5 h-5" style={{ color: current < dynamicSlides.length - 1 ? 'white' : 'var(--icon-color)' }} />
                                 </button>
                             </div>
                         </div>
                         <div className="flex-1 w-full h-[400px] relative">
                             <div className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative">
-                                <VisualImage
-                                    src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE}
-                                    alt={getLocalizedText(activeSlide.title, lang)}
-                                    priority={true}
-                                    className="w-full h-full object-cover"
-                                />
+                                <img src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE} className="w-full h-full object-cover" />
                             </div>
                         </div>
                     </div>
@@ -601,8 +573,17 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
         );
     }
 
+    // Unified Background Resolution
+    const bgType = (container.settings.bgType || 'none').toLowerCase();
+    const resolvedBgType = bgType === 'site' || bgType === 'site-color' || bgType === 'sitecolor' ? 'site-color' : bgType;
+    const resolvedBgColor = container.settings.bgColor || container.settings.backgroundColor || '#ffffff';
+
+    const bgStyle: React.CSSProperties = {
+        backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : (resolvedBgType === 'none' ? 'transparent' : themeConfig['--bg-body'])),
+    };
+
     return (
-        <div className="w-full bg-white">
+        <div className="w-full relative" style={bgStyle}>
             {/* SliderManager Modal */}
             {showSliderManager && (
                 <SliderManager onClose={() => setShowSliderManager(false)} />
@@ -751,24 +732,26 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
     );
 });
 
-// --- RENDERER 3: DATA GRID ---
 const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: ComponentRendererProps) => {
     const { settings } = container;
-    const {
-        news, events, documents, pages, containerItems, contacts,
-        updateNews, updateEvent, updateDocument, updateContainerItem, updateContact, updatePage,
-        deleteNews, deleteEvent, deleteDocument, deleteContainerItem, deleteContact, deletePage,
-        setCurrentPage,
-        currentPageId,
-        viewMode
-    } = useStore();
-    const isSlider = settings.layout === 'slider';
-    const cols = settings.columns || 3;
-    const scrollContainer = useRef<HTMLDivElement>(null);
     const [activeReadMoreItem, setActiveReadMoreItem] = useState<{ item: any, index: number } | null>(null);
-    const [editingItem, setEditingItem] = useState<{ item: any, type: string } | null>(null);
+    const scrollContainer = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const {
+        news, events, documents, pages, contacts, containerItems,
+        setCurrentPage, updateNews, deleteNews,
+        updateEvent, deleteEvent, updateDocument, deleteDocument,
+        updateContact, deleteContact, updateContainerItem, deleteContainerItem,
+        updatePage, deletePage, viewMode, currentPageId
+    } = useStore();
+    const isSlider = settings.layoutType === 'Slider' || settings.layout === 'slider';
+    const cols = settings.columns || 3;
+    const gapSize = settings.spacing === 'compact' ? 1 : (settings.spacing === 'wide' ? 3 : 2);
+    const spacingClass = settings.spacing === 'compact' ? 'gap-4' : (settings.spacing === 'wide' ? 'gap-12' : 'gap-8');
+    const cardWidth = isSlider ? `calc((100% - ${(cols - 1) * gapSize}rem) / ${cols})` : 'auto';
+    const [editingItem, setEditingItem] = useState<{ item: any, type: string } | null>(null);
 
     const checkScroll = useCallback(() => {
         if (scrollContainer.current) {
@@ -880,13 +863,6 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
 
 
 
-    const gapSize = settings.spacing === 'compact' ? 1 : (settings.spacing === 'wide' ? 3 : 2);
-    const spacingClass = settings.spacing === 'compact' ? 'gap-4' : (settings.spacing === 'wide' ? 'gap-12' : 'gap-8');
-
-    const cardWidth = isSlider
-        ? `calc((100% - ${(cols - 1) * gapSize}rem) / ${cols})`
-        : 'auto';
-
     const scroll = (direction: 'left' | 'right') => {
         if (scrollContainer.current) {
             const containerWidth = scrollContainer.current.clientWidth;
@@ -955,8 +931,9 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
         let btnContainerId = o?.btnContainerId;
         let btnTargetContainerTitle = o?.btnTargetContainerTitle;
 
+        let config = null;
         if (o?.btnConfig && o.btnConfig[container.id]) {
-            const config = o.btnConfig[container.id];
+            config = o.btnConfig[container.id];
             btnEnabled = config.btnEnabled;
             btnName = config.btnName;
             btnLinkType = config.btnLinkType || 'url';
@@ -968,7 +945,13 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
         const hasAction = btnEnabled && btnName;
 
         if (hasAction) {
-            const btnClasses = `bg-[var(--btn-primary-bg)] text-white w-max self-center mx-auto transition-all active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center px-6 py-2 text-xs font-bold rounded-sm ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
+            const currentBtnColor = config?.btnColor || o?.btnColor;
+            const currentBtnCustomColor = config?.btnCustomColor || o?.btnCustomColor;
+            const resolvedBtn = resolveColor(currentBtnColor, currentBtnCustomColor, 'btn-primary', '--btn-primary-bg');
+
+            const btnClasses = `w-max self-center mx-auto transition-all active:scale-[0.98] uppercase tracking-wider inline-flex items-center justify-center ${resolvedBtn.className || ''} ${isOldLayout ? 'mt-4' : 'mt-auto'}`;
+            const btnStyle = resolvedBtn.style;
+
             if (btnLinkType === 'container' && (btnContainerId || btnTargetContainerTitle)) {
                 let targetPage = null;
                 if (btnContainerId && btnContainerId !== 'custom') {
@@ -1002,6 +985,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                             }
                         }}
                         className={btnClasses}
+                        style={btnStyle}
                     >
                         {btnName}
                     </button>
@@ -1020,6 +1004,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                             }
                         }}
                         className={btnClasses}
+                        style={btnStyle}
                     >
                         {btnName}
                     </a>
@@ -1041,11 +1026,11 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
             >
                 <span>{getTranslation('BTN_READ_MORE', lang)}</span>
                 {isOldLayout ? (
-                    <ChevronRight className="w-3 h-3" />
+                    <ChevronRight className="w-5 h-5" />
                 ) : (
                     <div className="flex items-center gap-0.5 opacity-80 group-hover/btn:opacity-100">
-                        {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-3 h-3" />}
-                        <ChevronRight className="w-3 h-3" />
+                        {viewMode === ViewMode.EDIT ? <EditTrigger labelKey="BTN_READ_MORE" /> : <Info className="w-5 h-5" />}
+                        <ChevronRight className="w-5 h-5" />
                     </div>
                 )}
             </button>
@@ -1082,20 +1067,21 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                         settings.align === 'right' ? 'text-right' :
                             'text-left'
                         }`}>
-                        <h2 className={`font-bold tracking-tight ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`} style={{ ...titleStyle, fontFamily: 'var(--font-family-secondary)', ...resolveColor(settings.titleColor, settings.titleCustomColor).style }}>
+                        <h2 className={`font-bold tracking-tight ${resolveColor(settings.titleColor, settings.titleCustomColor, 'text-inherit', '--heading-h2-color').className || ''}`}
+                            style={{ ...titleStyle, fontFamily: 'var(--font-family-secondary)', ...resolveColor(settings.titleColor, settings.titleCustomColor, 'text-inherit', '--heading-h2-color').style, ...(settings.titleFontSize ? { fontSize: `${settings.titleFontSize}px`, '--font-size-h2': `${settings.titleFontSize}px` } as any : {}) }}>
                             {getLocalizedText(container.content.title, lang)}
                         </h2>
                         {(settings.showSubheading !== false) && settings.subheading && (
-                            <p className={`text-lg font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor).className || ''}`}
-                                style={{ ...subtitleStyle, ...resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor).style }}>
+                            <p className={`text-lg font-medium mt-2 ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor, 'text-inherit', '--heading-h2-color').className || ''}`}
+                                style={{ ...subtitleStyle, ...resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor, 'text-inherit', '--heading-h2-color').style, ...(settings.subtitleFontSize ? { fontSize: `${settings.subtitleFontSize}px`, '--font-size-p': `${settings.subtitleFontSize}px` } as any : {}) }}>
                                 {getLocalizedText(settings.subheading, lang) || settings.subheading}
                             </p>
                         )}
                         {(settings.showDescription !== false) && settings.description && (
                             renderRichText(
                                 getLocalizedText(settings.description, lang) || settings.description,
-                                `text-sm leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor).className || ''}`,
-                                { ...descStyle, ...resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor).style }
+                                `text-sm leading-relaxed mt-3 max-w-4xl ${settings.align === 'center' ? 'mx-auto' : ''} ${resolveColor(settings.descColor, settings.descCustomColor, 'text-[var(--text-secondary)]', '--text-primary').className || ''}`,
+                                { ...resolveColor(settings.descColor, settings.descCustomColor, 'text-[var(--text-secondary)]', '--text-primary').style, ...(settings.descFontSize ? { '--font-size-p': `${settings.descFontSize}px` } : {}) } as any
                             )
                         )}
                     </div>
@@ -1143,7 +1129,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                     setCurrentPage(item.id);
                                 }
                             }}
-                            className={`${settings.useOldCardLayout ? 'bg-transparent' : 'bg-white'} ${(settings.border && settings.border.toLowerCase() !== 'none') && !settings.useOldCardLayout ? 'border border-gray-200 shadow-sm' : ''} group flex relative
+                            className={`${settings.useOldCardLayout ? 'bg-transparent' : 'bg-white'} ${settings.border !== 'none' ? 'border border-gray-200 shadow-sm' : ''} group flex relative
                                 ${layout.card}
                                 ${borderClass} 
                                 ${settings.source === 'Smart Pages' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}
@@ -1219,7 +1205,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                         ) : (
                                             <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 bg-gray-50 group-hover:bg-gray-100 transition-colors">
                                                 {getDocIcon(item.type)}
-                                                <div className="text-[10px] font-bold uppercase mt-2 opacity-60 tracking-wider font-mono">{item.type || 'Item'}</div>
+                                                <div className="text-[10px] font-bold uppercase mt-2 opacity-60 tracking-wider">{item.type || 'Item'}</div>
                                             </div>
                                         )}
                                     </div>
@@ -1239,7 +1225,7 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                                 fontSize: '3rem',
                                                 fontWeight: 700,
                                                 fontFamily: 'var(--font-family-secondary, sans-serif)',
-                                                color: '#e2e8f0',
+                                                color: 'var(--border-color)',
                                                 lineHeight: 1,
                                                 minWidth: '3.5rem'
                                             }}
@@ -1253,17 +1239,17 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                         {/* Title */}
                                         <div className="flex items-start gap-2 mb-2">
                                             <h3
-                                                className="font-bold uppercase group-hover:text-[var(--primary-color)] transition-colors flex-1"
+                                                className="font-bold uppercase group-hover:text-[var(--link-color)] transition-colors flex-1"
                                                 style={{
                                                     fontFamily: 'var(--font-family-secondary, sans-serif)',
-                                                    color: 'var(--primary-color)',
+                                                    color: resolveColor(settings.titleColor, settings.titleCustomColor).style?.color || 'var(--primary-color)',
                                                     fontSize: '15px',
                                                     lineHeight: '1.4',
                                                     minHeight: '2.8em',
                                                     wordBreak: 'break-word',
                                                     whiteSpace: 'normal',
                                                     margin: 0
-                                                } as React.CSSProperties}
+                                                } as any}
                                             >
                                                 {item.title}
                                             </h3>
@@ -1273,9 +1259,9 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                                         e.stopPropagation();
                                                         setEditingItem({ item: item.originalItem, type: settings.source });
                                                     }}
-                                                    className="text-[var(--primary-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                                                    className="text-[var(--link-color)] opacity-60 hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
                                                 >
-                                                    <Pencil className="w-3.5 h-3.5" />
+                                                    <Pencil className="w-3.5 h-3.5" style={{ color: 'var(--icon-color)' }} />
                                                 </button>
                                             )}
                                         </div>
@@ -1285,19 +1271,18 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
                                             <p
                                                 className="flex-1"
                                                 style={{
-                                                    ...descStyle,
                                                     fontFamily: 'var(--font-family-base, sans-serif)',
-                                                    fontSize: descStyle.fontSize || 'var(--font-size-p, 0.75rem)',
+                                                    fontSize: 'var(--font-size-p, 0.75rem)',
                                                     color: 'var(--text-secondary, #6b7280)',
                                                     lineHeight: '1.6',
                                                     textAlign: 'justify'
-                                                } as React.CSSProperties}
+                                                } as any}
                                             >
                                                 {stripHtml(item.desc)}
                                             </p>
                                         )}
 
-                                        {/* Action Button */}
+                                        {/* Read More / Action Button */}
                                         {renderActionButton(item, idx, true)}
                                     </div>
                                 </div>
@@ -1518,13 +1503,11 @@ const DataGridRenderer = React.memo(({ container, lang, onInternalLink }: Compon
 
 // --- RENDERER 4: CONTACT FORM (UPDATED) ---
 const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: ComponentRendererProps) => {
-    const { submitContactQuery } = useStore();
+    const { submitContactQuery, themeConfig } = useStore();
     const { settings } = container;
     const fields = settings.fields || [];
 
     const resolvedAlignment = String(settings.alignment || settings.align || 'center').toLowerCase() === 'left' ? 'left' : 'center';
-    const resolvedBgColor = settings.bgColor || (settings.backgroundColor && settings.backgroundColor !== 'site-color' ? settings.backgroundColor : '#ffffff');
-    const resolvedBgImage = settings.bgImage || settings.backgroundImage || '';
     const bgTypeNormalized = String(settings.bgType || '').toLowerCase();
     const resolvedBgType = ((bgTypeNormalized === 'none' || bgTypeNormalized === 'color' || bgTypeNormalized === 'image' || bgTypeNormalized === 'site-color' || bgTypeNormalized === 'site' || bgTypeNormalized === 'sitecolor')
         ? ((bgTypeNormalized === 'site' || bgTypeNormalized === 'sitecolor') ? 'site-color' : bgTypeNormalized)
@@ -1533,10 +1516,14 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                 ? 'site-color'
                 : ((settings.bgImage || settings.backgroundImage) ? 'image' : ((settings.bgColor || settings.backgroundColor) ? 'color' : 'none'))
         )) as 'none' | 'color' | 'site-color' | 'image';
+    const resolvedBgColor = settings.bgColor || settings.backgroundColor;
 
-    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-[var(--primary-color)]');
-    const subtitleColor = resolveColor(settings.subtitleColor || settings.titleColor, settings.subtitleCustomColor || settings.titleCustomColor, 'text-[var(--text-secondary)]');
-    const descColor = resolveColor(settings.descColor || settings.titleColor, settings.descCustomColor || settings.titleCustomColor, 'text-[var(--text-secondary)]');
+    const resolvedBgImage = settings.bgImage || settings.backgroundImage || '';
+
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-[var(--primary-color)]', '--heading-h2-color');
+    const subtitleColor = resolveColor(settings.subtitleColor, settings.subtitleCustomColor, 'text-[var(--text-secondary)]', '--heading-h2-color');
+    const descColor = resolveColor(settings.descColor, settings.descCustomColor, 'text-[var(--text-secondary)]', '--text-primary');
+    const btnColor = resolveColor(settings.btnColor, settings.btnCustomColor, 'btn-primary', '--btn-primary-bg');
 
     // Helper function to generate random CAPTCHA
     const generateCaptcha = () => {
@@ -1701,7 +1688,7 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
             {/* Top Background Area */}
             <div className="w-full pt-20 pb-[33rem] px-6 relative"
                 style={{
-                    backgroundColor: resolvedBgType === 'color' ? resolvedBgColor : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : 'transparent'),
+                    backgroundColor: resolvedBgType === 'color' ? (resolvedBgColor || themeConfig['--bg-body']) : (resolvedBgType === 'site-color' ? 'var(--primary-color)' : 'transparent'),
                     backgroundImage: resolvedBgType === 'image' && resolvedBgImage ? `url(${resolvedBgImage})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
@@ -1711,20 +1698,20 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                 <div className={`relative z-10 max-w-2xl mx-auto ${resolvedAlignment === 'center' ? 'text-center' : 'text-left'}`}>
                     {settings.heading && (
                         <h2 className={`text-3xl font-bold mb-3 uppercase tracking-wider ${titleColor.className || ''}`}
-                            style={{ ...titleColor.style }}>
+                            style={{ ...titleColor.style, ...(settings.titleFontSize ? { fontSize: `${settings.titleFontSize}px`, '--font-size-h2': `${settings.titleFontSize}px` } as any : {}) }}>
                             {getLocalizedText(settings.heading, lang)}
                         </h2>
                     )}
-                    {settings.subheading && (
+                    {(settings.showSubheading !== false) && settings.subheading && (
                         <p className={`mt-1 font-medium ${subtitleColor.className || ''}`}
-                            style={subtitleColor.style}>
+                            style={{ ...subtitleColor.style, ...(settings.subtitleFontSize ? { fontSize: `${settings.subtitleFontSize}px`, '--font-size-p': `${settings.subtitleFontSize}px` } as any : {}) }}>
                             {getLocalizedText(settings.subheading, lang)}
                         </p>
                     )}
-                    {settings.description && (
+                    {(settings.showDescription !== false) && settings.description && (
                         <div className={`mt-2 ${descColor.className || ''}`}
-                            style={descColor.style}>
-                            {renderRichText(getLocalizedText(settings.description, lang), "", descColor.style)}
+                            style={{ ...descColor.style, ...(settings.descFontSize ? { '--font-size-p': `${settings.descFontSize}px` } as any : {}) }}>
+                            {renderRichText(getLocalizedText(settings.description, lang), "", { ...descColor.style, ...(settings.descFontSize ? { '--font-size-p': `${settings.descFontSize}px` } as any : {}) })}
                         </div>
                     )}
                 </div>
@@ -1858,10 +1845,11 @@ const ContactFormRenderer = React.memo(({ container, lang, pageTitle }: Componen
                             onClick={handleSubmit}
                             disabled={!isFormValid() || status === 'LOADING'}
                             className={`w-full py-3 font-bold text-sm shadow-md uppercase tracking-wider rounded-sm mt-4 transition-all ${isFormValid() && status !== 'LOADING'
-                                ? 'bg-[var(--primary-color)] text-[var(--text-on-primary)] hover:opacity-90 active:scale-[0.98]'
+                                ? `${btnColor.className || ''} hover:opacity-90 active:scale-[0.98]`
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'}`}
+                            style={isFormValid() && status !== 'LOADING' ? btnColor.style : {}}
                         >
-                            {status === 'LOADING' ? 'Sending...' : getLocalizedText(settings.buttonText || 'Send Message', lang)}
+                            {status === 'LOADING' ? 'Sending...' : getItemTranslation(settings, lang, 'buttonText') || 'Send Message'}
                         </button>
                     </div>
                 </div>
@@ -1875,6 +1863,8 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
     const { settings, content } = container;
     const columns = settings.columns || [];
     const rows = content.rows || [];
+
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-inherit', '--heading-h2-color');
 
     // State for global search, column filters, and sorting
     const [searchQuery, setSearchQuery] = useState('');
@@ -1929,8 +1919,8 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
     return (
         <div className="py-16 px-6 max-w-7xl mx-auto">
             <div className="mb-8">
-                <h2 className={`font-bold mb-2 ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`}
-                    style={resolveColor(settings.titleColor, settings.titleCustomColor).style}>
+                <h2 className={`font-bold mb-2 ${titleColor.className || ''}`}
+                    style={titleColor.style}>
                     {getLocalizedText(content.title, lang)}
                 </h2>
                 {settings.enableGlobalSearch && (
@@ -2018,11 +2008,12 @@ const TableRenderer = React.memo(({ container, lang }: ComponentRendererProps) =
 // --- RENDERER 6: MAP ---
 const MapRenderer = React.memo(({ container, lang }: ComponentRendererProps) => {
     const { settings, content } = container;
+    const titleColor = resolveColor(settings.titleColor, settings.titleCustomColor, 'text-inherit', '--heading-h2-color');
 
     return (
         <div className="py-16 px-6 max-w-7xl mx-auto">
-            <h2 className={`font-bold mb-8 ${resolveColor(settings.titleColor, settings.titleCustomColor).className || ''}`}
-                style={resolveColor(settings.titleColor, settings.titleCustomColor).style}>
+            <h2 className={`font-bold mb-8 ${titleColor.className || ''}`}
+                style={titleColor.style}>
                 {getLocalizedText(content.title, lang)}
             </h2>
 
@@ -2064,19 +2055,19 @@ const ContainerSectionRenderer = React.memo(({ container, lang }: ComponentRende
     const body = settings?.body || '';
 
     // Resolve background color
-    const bgType = String(settings?.bgType || '').toLowerCase();
+    const bgTypeNormalized = String(settings?.bgType || '').toLowerCase();
     const resolvedBg = (() => {
-        if (bgType === 'color') return settings?.bgColor || settings?.backgroundColor || 'transparent';
-        if (bgType === 'site-color' || bgType === 'site' || bgType === 'sitecolor') return 'var(--primary-color)';
+        if (bgTypeNormalized === 'color') return settings?.bgColor || settings?.backgroundColor || 'transparent';
+        if (bgTypeNormalized === 'site-color' || bgTypeNormalized === 'site' || bgTypeNormalized === 'sitecolor') return 'var(--primary-color)';
         return 'transparent'; // 'none' or default
     })();
 
     // Resolve title color
-    const resolvedTitle = resolveColor(settings?.titleColorType || settings?.titleColor, settings?.titleColor);
+    const resolvedTitle = resolveColor(settings?.titleColorType || settings?.titleColor, settings?.titleColor, 'text-inherit', '--heading-h2-color');
 
     // Resolve title border color
     // If background is transparent, we might want a border. If not, maybe not.
-    const titleBorderColorLine = (bgType === 'none' || !bgType) ? (resolvedTitle.style?.color || 'var(--primary-color)') : 'transparent';
+    const titleBorderColorLine = (bgTypeNormalized === 'none' || !bgTypeNormalized) ? (resolvedTitle.style?.color || 'var(--primary-color)') : 'transparent';
 
     // Resolve alignment
     const alignment = String(settings?.alignment || settings?.align || 'left').toLowerCase();
@@ -2230,12 +2221,12 @@ const TopNavDropdownItem = React.memo(({ item, allItems, onNavigate }: TopNavIte
                 className="nav-link text-sm font-bold uppercase tracking-wide transition-all flex items-center gap-1 py-2"
             >
                 {localizedTitle}
-                {hasChildren && <ChevronDown className="w-3 h-3 opacity-50" />}
+                {hasChildren && <ChevronDown className="w-5 h-5 opacity-50" />}
             </a>
 
             {/* Dropdown Menu */}
             {hasChildren && (
-                <div className="absolute top-full left-0 hidden group-hover/menuitem:block pt-2 z-50 min-w-[200px]">
+                <div className="absolute top-full right-0 hidden group-hover/menuitem:block pt-2 z-50 min-w-[200px]">
                     <div className="bg-white border border-gray-200 shadow-xl rounded-none py-2">
                         {children.map(child => (
                             <TopNavSubItem key={child.id} item={child} allItems={allItems} onNavigate={onNavigate} />
@@ -2251,6 +2242,7 @@ const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProp
     const { currentLanguage } = useStore();
     const children = useMemo(() => allItems.filter(n => n.parentId === item.id && n.isVisible).sort((a, b) => a.order - b.order), [item.id, allItems]);
     const hasChildren = children.length > 0;
+    const [isHovered, setIsHovered] = useState(false);
 
     const handleClick = useCallback((e: React.MouseEvent) => {
         if (item.type === 'Container' && item.containerId && item.pageId) {
@@ -2275,20 +2267,24 @@ const TopNavSubItem = React.memo(({ item, allItems, onNavigate }: TopNavItemProp
     const localizedTitle = useMemo(() => getItemTranslation(item, currentLanguage, 'title'), [item, currentLanguage]);
 
     return (
-        <div className="relative group/subitem">
+        <div
+            className="relative px-4 py-2 hover:bg-gray-100"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <a
                 href={item.url || '#'}
                 onClick={handleClick}
                 target={item.openInNewTab ? '_blank' : '_self'}
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[var(--primary-color)] transition-all flex items-center justify-between no-underline"
+                className="nav-link text-sm font-medium flex justify-between items-center"
             >
-                <span>{localizedTitle}</span>
-                {hasChildren && <ChevronRight className="w-4 h-4 opacity-50" />}
+                {localizedTitle}
+                {hasChildren && <span className="text-xs">›</span>}
             </a>
 
             {/* Flyout Menu */}
-            {hasChildren && (
-                <div className="absolute left-full top-0 hidden group-hover/subitem:block pl-1 z-50 min-w-[200px]">
+            {hasChildren && isHovered && (
+                <div className="absolute top-0 z-50 min-w-[200px]" style={{ right: '199px' }}>
                     <div className="bg-white border border-gray-200 shadow-xl rounded-none py-2">
                         {children.map(child => (
                             <TopNavSubItem key={child.id} item={child} allItems={allItems} onNavigate={onNavigate} />
@@ -2364,7 +2360,7 @@ const LanguageSelector = () => {
 };
 
 export const PreviewArea: React.FC = () => {
-    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading, openModal } = useStore();
+    const { pages, currentPageId, setCurrentPage, viewMode, siteConfig, currentLanguage, translationItems, loadFromApi, isLoading, openModal, themeConfig } = useStore();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -2509,32 +2505,20 @@ export const PreviewArea: React.FC = () => {
 
 
     const LogoComponent = useCallback(() => (
-        <a
-            href="/"
-            onClick={(e) => { e.preventDefault(); handleInternalLink(e as any, '/'); }}
-            className="flex items-center gap-3 no-underline group"
-        >
+        <div className="flex-shrink-0 cursor-pointer" onClick={(e) => handleInternalLink(e as any, '/')}>
             {siteConfig.logo?.url ? (
-                <div style={{ width: siteConfig.logo.width || '150px' }} className="h-10 transition-transform group-hover:scale-105">
-                    <VisualImage
-                        src={siteConfig.logo.url}
-                        alt={siteConfig.name}
-                        priority={true}
-                        objectFit="contain"
-                    />
-                </div>
+                <img
+                    src={siteConfig.logo.url}
+                    alt={siteConfig.name}
+                    style={{ width: siteConfig.logo.width || 'var(--logo-width)' }}
+                    className="object-contain"
+                />
             ) : (
-                <div className="w-10 h-10 bg-[var(--primary-color)] flex items-center justify-center text-white font-bold text-xl rounded-none shadow-inner group-hover:bg-opacity-90 transition-all">
-                    {siteConfig.name?.charAt(0) || 'S'}
+                <div className="font-bold text-xl tracking-tight" style={{ color: 'var(--primary-color)', fontFamily: 'var(--font-family-base)' }}>
+                    {siteConfig.name}
                 </div>
             )}
-            {/* <span
-                className="font-bold text-xl tracking-tight hidden lg:block"
-                style={{ color: 'var(--header-text-color, var(--text-primary))', fontFamily: 'var(--font-family-base)' }}
-            >
-                {siteConfig.name}
-            </span> */}
-        </a>
+        </div>
     ), [siteConfig.logo, siteConfig.name, handleInternalLink]);
 
     if (isLoading) {
@@ -2573,16 +2557,20 @@ export const PreviewArea: React.FC = () => {
     }
 
     return (
-        <div className="flex-1 bg-gray-200 overflow-hidden flex flex-col relative">
+        <div className="flex-1 overflow-hidden flex flex-col relative" style={{ backgroundColor: themeConfig['--bg-body'] }}>
 
             {/* Main Website Frame */}
-            <div id="preview-main-scroll" className="flex-1 overflow-y-auto admin-scroll bg-white relative" style={{ backgroundColor: 'var(--bg-body)' }}>
+            <div
+                id="preview-main-scroll"
+                className="flex-1 overflow-y-auto admin-scroll bg-transparent relative"
+                style={{ backgroundColor: themeConfig['--bg-body'], ...themeConfig as any }}
+            >
 
                 {/* Site Header */}
                 <header
                     className="sticky top-0 z-30 shadow-sm backdrop-blur-md bg-opacity-90 transition-all"
                     style={{
-                        backgroundColor: 'var(--header-bg)',
+                        backgroundColor: themeConfig['--header-bg'],
                         borderBottom: '1px solid var(--border-color)'
                     }}
                 >
@@ -2720,7 +2708,7 @@ export const PreviewArea: React.FC = () => {
                                                     ))
                                                 ) : (
                                                     <div className="text-left">
-                                                        <h4 className="font-bold mb-2" style={{ fontSize: footerConfig.fontSettings.headingSize, color: 'black' }}>{siteConfig.name} </h4>
+                                                        <h4 className="font-bold mb-2" style={{ fontSize: footerConfig.fontSettings.headingSize, color: footerHeadingColor }}>{siteConfig.name} </h4>
                                                         {footerConfig.contactInfo.address && (
                                                             <p className="opacity-80 leading-relaxed" style={{ fontSize: footerConfig.fontSettings.subHeadingSize, color: footerTextColor }}>
                                                                 {footerConfig.contactInfo.address}
@@ -2744,11 +2732,11 @@ export const PreviewArea: React.FC = () => {
                                         {/* Column 2: Social Links (Flexible) - WITH DESIGN LINES */}
                                         <div className="flex flex-col items-center space-y-6">
                                             <div className="flex items-center w-full gap-4">
-                                                <div className="h-px bg-[var(--primary-color)]/20 flex-1"></div>
+                                                <div className="h-px bg-[var(--primary-color)] flex-1"></div>
                                                 <div className="flex flex-wrap justify-center gap-3">
                                                     {(footerConfig.socialItems && footerConfig.socialItems.length > 0) ? (
                                                         footerConfig.socialItems.map((item: any) => (
-                                                            <a key={item.id} href={item.url || '#'} className="hover:opacity-80 transition-all hover:scale-110 bg-[var(--link-color)]">
+                                                            <a key={item.id} href={item.url || '#'} className="hover:opacity-80 transition-all hover:scale-110">
                                                                 {getSocialIcon(item.type)}
                                                             </a>
                                                         ))
@@ -2756,18 +2744,18 @@ export const PreviewArea: React.FC = () => {
                                                         <div className="flex gap-4">
                                                             {footerConfig.socialLinks.facebook && (
                                                                 <a href={footerConfig.socialLinks.facebook} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[var(--link-color)] flex items-center justify-center"><Facebook className="w-5 h-5 text-white" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Facebook className="w-5 h-5 text-white" /></div>
                                                                 </a>
                                                             )}
                                                             {footerConfig.socialLinks.linkedin && (
                                                                 <a href={footerConfig.socialLinks.linkedin} className="hover:opacity-80 transition-opacity">
-                                                                    <div className="w-9 h-9 rounded-full bg-[var(--link-color)] flex items-center justify-center"><Linkedin className="w-5 h-5 text-white" /></div>
+                                                                    <div className="w-9 h-9 rounded-full bg-[var(--primary-color)] flex items-center justify-center"><Linkedin className="w-5 h-5 text-white" /></div>
                                                                 </a>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div className="h-px bg-[var(--primary-color)]/20 flex-1"></div>
+                                                <div className="h-px bg-[var(--primary-color)] flex-1"></div>
                                             </div>
                                             {viewMode === ViewMode.EDIT && (
                                                 <button
