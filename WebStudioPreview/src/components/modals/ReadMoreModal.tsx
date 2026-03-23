@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { GenericModal } from './SharedModals';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
-export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) => {
+export const ReadMoreModal = ({ item, onClose, isNumbered: _isNumbered, index: _index, imagePosition, imgBorder }: any) => {
     // Resolve images: support both 'images' array and single 'img'/'imageUrl' property
     const images = item.images && item.images.length > 0
         ? item.images
@@ -28,7 +28,8 @@ export const ReadMoreModal = ({ item, onClose, imagePosition, imgBorder }: any) 
             <GenericModal
                 title={item.title}
                 onClose={onClose}
-                width="max-w-[800px]"
+                width="w-auto max-w-[800px]"
+                heightClass="h-auto max-h-[90vh]"
                 noFooter={true}
                 customFooter={customFooter}
             >

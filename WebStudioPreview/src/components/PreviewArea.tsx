@@ -11,7 +11,7 @@ import {
     AlertTriangle, ChevronDown, MapPin, Mail, Phone,
     Linkedin, Facebook, Twitter, Instagram, ChevronLeft, ChevronRight,
     RefreshCw, FileText, FileSpreadsheet, Presentation, Link as LinkIcon, File,
-    Globe, Search, ArrowUp, ArrowDown, X, Info, Plus
+    Globe, Search, ArrowUp, ArrowDown, X, Info, Plus, ChevronUp
 } from 'lucide-react';
 import { ReadMoreModal } from './modals/ReadMoreModal';
 import { EditTrigger } from './modals/SharedModals';
@@ -23,7 +23,6 @@ const EventEditor = (_props: any) => null;
 const DocumentEditor = (_props: any) => null;
 const ContactEditor = (_props: any) => null;
 const ContainerItemEditor = (_props: any) => null;
-const SliderItemEditor = (_props: any) => null;
 const SliderManager = (_props: any) => null;
 const SmartPageEditor = (_props: any) => null;
 
@@ -378,9 +377,11 @@ const HeaderRenderer = React.memo(({ container, lang, onInternalLink }: Componen
 const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInternalLink }: ComponentRendererProps) => {
     const tmplId = container.settings.templateId;
     const [current, setCurrent] = useState(0);
-    const [editingSlide, setEditingSlide] = useState<any | null>(null);
+    const [, setEditingSlide] = useState<any | null>(null);
     const [showSliderManager, setShowSliderManager] = useState(false);
-    const { sliderItems, updateSliderItem, deleteSliderItem, viewMode, themeConfig } = useStore();
+    const [activeReadMoreSlide, setActiveReadMoreSlide] = useState<{ item: any; index: number } | null>(null);
+    const [isNavExpanded, setIsNavExpanded] = useState(false);
+    const { sliderItems, viewMode, translationItems, currentLanguage, themeConfig } = useStore();
 
     const taggedIds = container.settings.taggedItems || [];
     const taggedSliderItems = taggedIds
@@ -441,9 +442,56 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
     const descStyle: React.CSSProperties = container.settings.descFontSize ? { fontSize: `${container.settings.descFontSize}px` } : {};
 
     // Resolve specific typography colors for Slider
-    const slideTitleColor = resolveColor(container.settings.titleColor, container.settings.titleCustomColor, 'text-[var(--primary-color)]', '--heading-h2-color');
-    const slideSubtitleColor = resolveColor(container.settings.subtitleColor || container.settings.titleColor, container.settings.subtitleCustomColor || container.settings.titleCustomColor, 'text-[var(--text-secondary)]', '--heading-h3-color');
-    const slideDescColor = resolveColor(container.settings.descColor || container.settings.titleColor, container.settings.descCustomColor || container.settings.titleCustomColor, 'text-[var(--text-secondary)]', '--text-primary');
+    const slideTitleColor = resolveColor(container.settings.titleColor, container.settings.titleCustomColor, 'var(--heading-h1-color)', '--heading-h1-color');
+    const slideSubtitleColor = resolveColor(container.settings.subtitleColor || container.settings.titleColor, container.settings.subtitleCustomColor || container.settings.titleCustomColor, 'var(--heading-h2-color)', '--heading-h2-color');
+    const slideDescColor = resolveColor(container.settings.descColor || container.settings.titleColor, container.settings.descCustomColor || container.settings.titleCustomColor, 'var(--text-primary)', '--text-primary');
+
+    // Match Web Studio Slider typography override + image border radius
+    const borderClass = container.settings.border === 'rounded' ? 'rounded-xl' : 'rounded-none';
+
+    // Create dynamic style block for typography to override external !important
+    const sliderId = `slider-container-${container.id}`;
+    const customTypographyCSS = `
+        #${sliderId} .slider-container-title {
+            ${container.settings.titleFontSize ? `font-size: ${container.settings.titleFontSize}px !important;` : ''}
+            ${slideTitleColor.style?.color ? `color: ${slideTitleColor.style.color} !important;` : ''}
+        }
+        #${sliderId} .slider-container-subtitle {
+            ${container.settings.subtitleFontSize ? `font-size: ${container.settings.subtitleFontSize}px !important;` : ''}
+            ${slideSubtitleColor.style?.color ? `color: ${slideSubtitleColor.style.color} !important;` : ''}
+        }
+        #${sliderId} .slider-container-desc, #${sliderId} .slider-container-desc * {
+            ${container.settings.descFontSize ? `font-size: ${container.settings.descFontSize}px !important;` : ''}
+            ${slideDescColor.style?.color ? `color: ${slideDescColor.style.color} !important;` : ''}
+        }
+    `;
+
+    // Helper: Convert number to Roman Numeral
+    const toRoman = (num: number): string => {
+        const lookup: [string, number][] = [["M", 1000], ["CM", 900], ["D", 500], ["CD", 400], ["C", 100], ["XC", 90], ["L", 50], ["XL", 40], ["X", 10], ["IX", 9], ["V", 5], ["IV", 4], ["I", 1]];
+        let roman = "";
+        for (const [letter, value] of lookup) {
+            while (num >= value) {
+                roman += letter;
+                num -= value;
+            }
+        }
+        return roman;
+    };
+
+    // Helper: Get Label based on ordering type
+    const getOrderedLabel = (index: number, ordering: string = '123'): string => {
+        const n = index + 1;
+        switch (ordering) {
+            case '123': return n.toString().padStart(2, '0');
+            case 'III': return toRoman(n);
+            case 'IIIII': return 'I'.repeat(n);
+            case 'ABC': return String.fromCharCode(64 + n); // A, B, C...
+            case 'abc': return String.fromCharCode(96 + n); // a, b, c...
+            case 'dots': return '...';
+            default: return '';
+        }
+    };
 
     const next = () => { if (current < dynamicSlides.length - 1) setCurrent((p) => p + 1); };
     const prev = () => { if (current > 0) setCurrent((p) => p - 1); };
@@ -467,109 +515,153 @@ const SliderRenderer = React.memo(({ container, lang, onInternalLink: _onInterna
     if (tmplId === 'img_gallery' || container.settings.templateVariant === 1) {
         const showTitle = container.settings.showSlideTitle !== false;
         const showDesc = container.settings.showSlideDescription !== false;
-        const sectionSubheading = container.settings.subheading;
         const slideSubtitle = getLocalizedText(activeSlide.sub || activeSlide.subtitle, lang);
         const slideDesc = getLocalizedText(activeSlide.desc, lang);
         // Avoid duplicate: show subtitle separately only when it's different from desc
         const showSubtitleSeparately = slideSubtitle && slideSubtitle !== slideDesc;
 
         return (
-            <div className="w-full bg-transparent relative py-16 flex items-center justify-center">
-                {editingSlide && (
-                    <SliderItemEditor
-                        item={editingSlide}
-                        onSave={async (updated: any) => { await updateSliderItem(updated); setEditingSlide(null); }}
-                        onCancel={() => setEditingSlide(null)}
-                        onDelete={async (id: string) => { await deleteSliderItem(id); setEditingSlide(null); }}
-                    />
-                )}
-                <div className="w-full max-w-6xl px-8">
-                    <div className={`mb-8 ${sectionHeaderAlignClass} w-full`}>
-                        {sliderTitle && (
-                            <h1 className={`${slideTitleColor.className || ''} font-bold`} style={{ ...titleStyle, ...slideTitleColor.style, ...(container.settings.titleFontSize ? {} : { fontSize: '1.875rem' }) }}>{sliderTitle}</h1>
-                        )}
-                        {sectionSubheading && (
-                            <p className={`${slideSubtitleColor.className || ''} mt-2`} style={{ ...subtitleStyle, ...slideSubtitleColor.style }}>{getLocalizedText(container.settings.subheading, lang) || container.settings.subheading}</p>
-                        )}
-                        {sliderDescription && renderRichText(
-                            sliderDescription,
-                            `text-sm leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''} ${slideDescColor.className || ''}`,
-                            slideDescColor.style
-                        )}
-                    </div>
-                    <div className="flex flex-col lg:flex-row gap-12 items-center bg-transparent">
-                        <div className={`flex-1 flex flex-col space-y-6 items-start text-left`}>
-                            {showTitle && (
-                                <div className="flex items-center gap-2 group/slide">
-                                    <h2 className="font-bold text-gray-800" style={titleStyle}>{getLocalizedText(activeSlide.title, lang)}</h2>
-                                    {activeSlide.originalItem && (
-                                        <button
-                                            onClick={() => setEditingSlide(activeSlide.originalItem)}
-                                            className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
-                                            title="Edit slide"
-                                        >
-                                            <Pencil className="w-5 h-5" style={{ color: 'var(--icon-color)' }} />
-                                        </button>
-                                    )}
+            <>
+                <div id={sliderId} className="w-full relative py-16 flex items-center justify-center bg-transparent">
+                    {customTypographyCSS.trim() ? <style>{customTypographyCSS}</style> : null}
+                    <div className="w-full max-w-6xl px-8">
+                        <div className={`mb-8 ${sectionHeaderAlignClass} w-full`}>
+                            {sliderTitle && (
+                                <h1 className={`${slideTitleColor.className || ''} font-bold slider-container-title`}>{sliderTitle}</h1>
+                            )}
+                            {sliderSubheading && (
+                                <p className={`${slideSubtitleColor.className || ''} mt-2 slider-container-subtitle`}>{sliderSubheading}</p>
+                            )}
+                            {sliderDescription && renderRichText(
+                                sliderDescription,
+                                `text-sm leading-relaxed mt-3 max-w-4xl ${container.settings.align === 'center' ? 'mx-auto' : ''} ${slideDescColor.className || ''} slider-container-desc`
+                            )}
+                        </div>
+
+                        <div className="flex flex-col lg:flex-row gap-12 items-center bg-transparent">
+                            <div className={`flex-1 flex flex-col space-y-6 items-start text-left`}>
+                                {showTitle && (
+                                    <div className="flex items-center gap-2 group/slide">
+                                        <h2 className="font-bold text-gray-800">{getLocalizedText(activeSlide.title, lang)}</h2>
+                                        {viewMode === ViewMode.EDIT && (
+                                            <button
+                                                onClick={() => setEditingSlide(activeSlide)}
+                                                className="opacity-0 group-hover/slide:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100"
+                                            >
+                                                <Pencil className="w-5 h-5" style={{ color: 'var(--icon-color)' }} />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {showDesc && (
+                                    <div className="flex flex-col items-start">
+                                        {showSubtitleSeparately && renderRichText(
+                                            slideSubtitle,
+                                            `font-medium text-left text-gray-600`
+                                        )}
+
+                                        {slideDesc && (
+                                            <div className="flex flex-col items-start">
+                                                {renderRichText(
+                                                    stripHtml(slideDesc).length > 200
+                                                        ? stripHtml(slideDesc).substring(0, 200).trim() + '...'
+                                                        : slideDesc,
+                                                    `leading-relaxed text-left text-gray-500`
+                                                )}
+
+                                                {stripHtml(slideDesc).length > 200 && (
+                                                    <button
+                                                        onClick={() => setActiveReadMoreSlide({ item: activeSlide, index: current })}
+                                                        className="mt-2 text-[var(--primary-color)] font-bold text-xs hover:underline flex items-center gap-1 group/read"
+                                                    >
+                                                        <span>{getGlobalTranslation('BTN_READ_MORE', translationItems, currentLanguage, 'Read More')}</span>
+                                                        <ChevronRight className="w-4 h-4 transition-transform group-hover/read:translate-x-1" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeSlide.cta && (
+                                    <a
+                                        href={activeSlide.url || '#'}
+                                        className="btn-primary no-underline text-white px-8 py-3 rounded flex items-center justify-center transition-all hover:opacity-90"
+                                    >
+                                        {getLocalizedText(activeSlide.cta, lang)}
+                                    </a>
+                                )}
+
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        onClick={prev}
+                                        disabled={current === 0}
+                                        className={`p-2 transition-all ${current > 0 ? 'btn-primary' : 'btn-secondary opacity-50 cursor-not-allowed'}`}
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={next}
+                                        disabled={current === dynamicSlides.length - 1}
+                                        className={`p-2 transition-all ${current < dynamicSlides.length - 1 ? 'btn-primary' : 'btn-secondary opacity-50 cursor-not-allowed'}`}
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
                                 </div>
-                            )}
-                            {showDesc && (
-                                <>
-                                    {showSubtitleSeparately && renderRichText(
-                                        slideSubtitle,
-                                        `font-medium text-left ${slideSubtitleColor.className || ''}`,
-                                        slideSubtitleColor.style
-                                    )}
-                                    {slideDesc && renderRichText(
-                                        slideDesc,
-                                        `leading-relaxed text-left ${slideDescColor.className || ''}`,
-                                        slideDescColor.style
-                                    )}
-                                </>
-                            )}
-                            {activeSlide.cta && (
-                                <button className="btn-primary">{getLocalizedText(activeSlide.cta, lang)}</button>
-                            )}
-                            <div className="flex gap-2 pt-4">
-                                <button
-                                    onClick={prev}
-                                    disabled={current === 0}
-                                    className={`p-2 transition-colors ${current > 0 ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-200 cursor-not-allowed opacity-50'}`}
-                                    style={{ borderRadius: 'var(--border-radius-sm)' }}
-                                >
-                                    <ChevronLeft className="w-5 h-5" style={{ color: current > 0 ? 'white' : 'var(--icon-color)' }} />
-                                </button>
-                                <button
-                                    onClick={next}
-                                    disabled={current === dynamicSlides.length - 1}
-                                    className={`p-2 transition-colors ${current < dynamicSlides.length - 1 ? 'bg-[var(--btn-primary-bg)] text-white hover:opacity-90' : 'bg-gray-200 cursor-not-allowed opacity-50'}`}
-                                    style={{ borderRadius: 'var(--border-radius-sm)' }}
-                                >
-                                    <ChevronRight className="w-5 h-5" style={{ color: current < dynamicSlides.length - 1 ? 'white' : 'var(--icon-color)' }} />
-                                </button>
+                            </div>
+
+                            <div className="flex-1 w-full h-[400px] relative">
+                                <div className={`w-full h-full ${borderClass} overflow-hidden shadow-2xl relative`}>
+                                    <img src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE} className="w-full h-full object-cover" />
+                                </div>
                             </div>
                         </div>
-                        <div className="flex-1 w-full h-[400px] relative">
-                            <div className="w-full h-full rounded-lg overflow-hidden shadow-2xl relative">
-                                <img src={activeSlide.img || activeSlide.image || GLOBAL_DEFAULT_IMAGE} className="w-full h-full object-cover" />
-                            </div>
+
+                        {/* Slide nav tabs */}
+                        <div className="flex flex-wrap gap-6 mt-8 justify-between items-center pt-4">
+                            {(isNavExpanded ? dynamicSlides : dynamicSlides.slice(0, 5)).map((slide: any, idx: number) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setCurrent(idx)}
+                                    className={`flex items-start gap-2 text-left transition-all duration-300 group ${idx === current ? 'text-[var(--primary-color)]' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    <span className={`text-xl font-bold transition-opacity ${idx === current ? 'opacity-100' : 'opacity-40'}`}>{getOrderedLabel(idx, container.settings.ordering)}</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider mt-1 whitespace-nowrap">{getLocalizedText(slide.title, lang)}</span>
+                                </button>
+                            ))}
+
+                            {dynamicSlides.length > 5 && !isNavExpanded && (
+                                <button
+                                    onClick={() => setIsNavExpanded(true)}
+                                    className="flex items-center gap-1.5 text-[var(--primary-color)] font-extrabold text-xs uppercase tracking-wider hover:underline transition-all group/expand"
+                                >
+                                    <span>{getGlobalTranslation('BTN_READ_MORE', translationItems, currentLanguage, 'Read More')}</span>
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            )}
+
+                            {dynamicSlides.length > 5 && isNavExpanded && (
+                                <button
+                                    onClick={() => setIsNavExpanded(false)}
+                                    className="flex items-center gap-1.5 text-[var(--primary-color)] font-extrabold text-xs uppercase tracking-wider hover:underline transition-all group/expand"
+                                >
+                                    <span>{getGlobalTranslation('BTN_READ_LESS', translationItems, currentLanguage, 'Read Less')}</span>
+                                    <ChevronUp className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
-                    </div>
-                    {/* Slide nav tabs */}
-                    <div className="flex gap-6 mt-8 justify-between pt-4">
-                        {dynamicSlides.map((slide: any, idx: number) => (
-                            <button
-                                key={idx}
-                                onClick={() => setCurrent(idx)}
-                                className={`flex items-start gap-2 text-left transition-colors ${idx === current ? 'text-[var(--primary-color)]' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                <span className="text-xl font-bold">{String(idx + 1).padStart(2, '0')}</span>
-                                <span className="text-xs font-bold uppercase tracking-wider mt-1">{getLocalizedText(slide.title, lang)}</span>
-                            </button>
-                        ))}
                     </div>
                 </div>
-            </div>
+
+                {activeReadMoreSlide && (
+                    <ReadMoreModal
+                        item={activeReadMoreSlide.item}
+                        index={activeReadMoreSlide.index}
+                        onClose={() => setActiveReadMoreSlide(null)}
+                    />
+                )}
+            </>
         );
     }
 
